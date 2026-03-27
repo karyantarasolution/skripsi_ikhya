@@ -9,10 +9,15 @@ class KategoriKegiatan extends Model
 {
     use HasFactory;
 
-    // Tambahkan properti $fillable ini untuk mengizinkan Mass Assignment
     protected $fillable = [
         'nama_kategori',
         'deskripsi',
         'warna_label',
     ];
+
+    // TAMBAHKAN RELASI INI
+    public function kegiatan()
+    {
+        return $this->hasMany(Kegiatan::class, 'kategori_id');
+    }
 }
