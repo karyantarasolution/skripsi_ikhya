@@ -21,7 +21,7 @@
                     <select id="global_penandatangan" class="w-full rounded-lg border-gray-300 shadow-sm focus:border-gray-900 focus:ring-gray-900 font-medium text-gray-700 bg-white">
                         <option value="" disabled selected>-- Pilih Pejabat Penandatangan --</option>
                         @foreach($penandatangan as $pejabat)
-                            <option value="{{ $pejabat->id }}">{{ $pejabat->nama }} ({{ $pejabat->jabatan }})</option>
+                            <option value="{{ $pejabat->id }}">{{ $pejabat->nama_pejabat }} ({{ $pejabat->jabatan }})</option>
                         @endforeach
                     </select>
                     @if($penandatangan->isEmpty())
@@ -207,6 +207,23 @@
                             <button type="button" class="btn-cetak w-full flex items-center justify-center gap-2 bg-gray-900 hover:bg-gray-800 text-white px-4 py-3 rounded-lg font-bold shadow-md transition-transform transform hover:-translate-y-0.5">
                                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"></path></svg>
                                 Cetak Daftar Pejabat
+                            </button>
+                        </form>
+                    </div>
+                </div>
+
+                <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden flex flex-col">
+                    <div class="p-6 flex-1">
+                        <div class="flex items-start justify-between">
+                            <h3 class="font-bold text-gray-900 text-lg mb-2">9. Statistik Upload per Staf</h3>
+                            <span class="px-2.5 py-1 bg-gray-100 text-gray-600 text-[10px] font-bold uppercase rounded tracking-wider border border-gray-200">Kinerja</span>
+                        </div>
+                        <p class="text-sm text-gray-500 mb-4">Mencetak laporan jumlah upload file dokumentasi per staf peliput untuk evaluasi kinerja.</p>
+                        <form action="{{ route('laporan.cetak.statistik-upload') }}" method="GET" target="_blank" class="print-form mt-auto border-t border-gray-100 pt-4">
+                            <input type="hidden" name="penandatangan_id" class="target_penandatangan" required>
+                            <button type="button" class="btn-cetak w-full flex items-center justify-center gap-2 bg-gray-900 hover:bg-gray-800 text-white px-4 py-3 rounded-lg font-bold shadow-md transition-transform transform hover:-translate-y-0.5">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path></svg>
+                                Cetak Statistik Upload
                             </button>
                         </form>
                     </div>

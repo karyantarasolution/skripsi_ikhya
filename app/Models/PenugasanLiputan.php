@@ -2,20 +2,15 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
-class Dokumentasi extends Model
+class PenugasanLiputan extends Model
 {
-    use HasFactory;
-
-    // INI BAGIAN YANG PALING PENTING UNTUK MENGHINDARI ERROR MASS ASSIGNMENT!
     protected $fillable = [
         'kegiatan_id',
         'user_id',
-        'nama_file',
-        'file_path',
-        'tipe_file',
+        'jenis',
+        'keterangan',
     ];
 
     public function kegiatan()

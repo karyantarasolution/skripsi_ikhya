@@ -6,7 +6,7 @@
             </a>
             <div>
                 <h2 class="font-semibold text-2xl text-gray-800 leading-tight">Edit Jadwal Kegiatan</h2>
-                <p class="text-sm text-gray-500 mt-1">Perbarui data informasi kegiatan.</p>
+                <p class="text-sm text-gray-500 mt-1">Perbarui data informasi kegiatan dan penugasan liputan.</p>
             </div>
         </div>
     </x-slot>
@@ -14,7 +14,7 @@
     <div class="py-8">
         <div class="max-w-4xl mx-auto sm:px-6 lg:px-8">
             <div class="bg-white overflow-hidden shadow-lg sm:rounded-xl border border-gray-100">
-                <form action="{{ route('peliputan.kegiatan.update', $kegiatan->id) }}" method="POST" class="p-6 sm:p-8">
+                <form action="{{ route('peliputan.kegiatan.update', $kegiatan->id) }}" method="POST" enctype="multipart/form-data" class="p-6 sm:p-8">
                     @csrf
                     @method('PUT')
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -56,6 +56,32 @@
                         <div class="md:col-span-2">
                             <label class="block text-sm font-semibold text-gray-700 mb-2">Keterangan / Deskripsi Singkat</label>
                             <textarea name="deskripsi" rows="3" class="w-full rounded-lg border-gray-300 shadow-sm focus:border-gray-900 focus:ring-gray-900 transition-colors">{{ $kegiatan->deskripsi }}</textarea>
+                        </div>
+
+                        <div class="md:col-span-2">
+                            <label class="block text-sm font-semibold text-gray-700 mb-2">File RAB</label>
+                            @if($kegiatan->rab_file)
+                                <div class="mb-2 flex items-center gap-2">
+                                    <a href="{{ asset($kegiatan->rab_file) }}" target="_blank" class="text-sm text-blue-600 hover:underline">Lihat RAB saat ini</a>
+                                </div>
+                            @endif
+                            <input type="file" name="rab_file" accept=".pdf,.doc,.docx,.xls,.xlsx,.jpg,.jpeg,.png" class="w-full rounded-lg border-gray-300 shadow-sm focus:border-gray-900 focus:ring-gray-900 transition-colors">
+                            <p class="text-xs text-gray-400 mt-1">Kosongkan jika tidak ingin mengganti file.</p>
+                        </div>
+
+                        <div class="md:col-span-2">
+                            <label class="block text-sm font-semibold text-gray-700 mb-2">Penugasan Staf Peliput</label>
+                            <div class="grid grid-cols-2 md:grid-cols-3 gap-3 p-4 bg-gray-50 rounded-lg border border-gray-200">
+                                @php $penugasanIds = $kegiatan->penugasan->pluck('user_id')->toArray(); @endphp
+                                @forelse($staf as $s)
+                                    <label class="flex items-center gap-2 p-2 bg-white rounded border border-gray-200 hover:border-gray-400 cursor-pointer">
+                                        <input type="checkbox" name="penugasan[]" value="{{ $s->id }}" {{ in_array($s->id, $penugasanIds) ? 'checked' : '' }} class="rounded border-gray-300 text-gray-900 focus:ring-gray-900">
+                                        <span class="text-sm text-gray-700">{{ $s->name }}</span>
+                                    </label>
+                                @empty
+                                    <p class="text-sm text-gray-500 col-span-full">Belum ada staf terdaftar.</p>
+                                @endforelse
+                            </div>
                         </div>
 
                     </div>

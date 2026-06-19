@@ -1,7 +1,7 @@
 <x-app-layout>
     <x-slot name="header">
-        <h2 class="font-semibold text-2xl text-gray-800 leading-tight">Jadwal Kegiatan Lapangan</h2>
-        <p class="text-sm text-gray-500 mt-1">Kelola jadwal liputan dan tambahkan arsip dokumentasi.</p>
+        <h2 class="font-semibold text-2xl text-gray-800 leading-tight">Jadwal & Workflow Kegiatan Lapangan</h2>
+        <p class="text-sm text-gray-500 mt-1">Kelola jadwal liputan, workflow persetujuan, dan dokumentasi kegiatan.</p>
     </x-slot>
 
     <div class="py-8">
@@ -34,14 +34,35 @@
                             <tr>
                                 <th class="px-6 py-4">Waktu & Tanggal</th>
                                 <th class="px-6 py-4">Informasi Kegiatan</th>
-                                <th class="px-6 py-4">Lokasi & Kategori</th>
+                                <th class="px-6 py-4">Status</th>
+                                <th class="px-6 py-4">Tim Liputan</th>
                                 <th class="px-6 py-4 text-center">Dokumentasi</th>
                                 <th class="px-6 py-4 text-center">Aksi</th>
                             </tr>
                         </thead>
                         <tbody class="divide-y divide-gray-100">
+                            @php
+                                $statusLabels = [
+                                    'draf' => 'Draft',
+                                    'diajukan' => 'Diajukan',
+                                    'disetujui' => 'Disetujui',
+                                    'ditolak' => 'Ditolak',
+                                    'pelaksanaan' => 'Pelaksanaan',
+                                    'selesai' => 'Selesai',
+                                    'lpj' => 'LPJ',
+                                ];
+                                $statusClasses = [
+                                    'draf' => 'bg-gray-100 text-gray-800 border-gray-200',
+                                    'diajukan' => 'bg-blue-100 text-blue-800 border-blue-200',
+                                    'disetujui' => 'bg-green-100 text-green-800 border-green-200',
+                                    'ditolak' => 'bg-red-100 text-red-800 border-red-200',
+                                    'pelaksanaan' => 'bg-indigo-100 text-indigo-800 border-indigo-200',
+                                    'selesai' => 'bg-emerald-100 text-emerald-800 border-emerald-200',
+                                    'lpj' => 'bg-purple-100 text-purple-800 border-purple-200',
+                                ];
+                            @endphp
                             @forelse($kegiatan as $item)
-                                <tr class="hover:bg-gray-50/50 transition-colors" x-data="{ openDelete: false }">
+                                <tr class="hover:bg-gray-50/50 transition-colors" x-data="{ openDelete: false, openTolak: false, openLpj: false }">
                                     <td class="px-6 py-4 whitespace-nowrap">
                                         <div class="font-bold text-gray-900">{{ \Carbon\Carbon::parse($item->tanggal)->format('d M Y') }}</div>
                                         <div class="text-xs text-gray-500 mt-1 flex items-center">
@@ -52,20 +73,47 @@
                                     <td class="px-6 py-4">
                                         <div class="font-bold text-gray-900 line-clamp-2">{{ $item->judul_kegiatan }}</div>
                                         <div class="text-xs text-gray-500 mt-1">Oleh: {{ $item->user->name ?? 'User Terhapus' }}</div>
-                                    </td>
-                                    <td class="px-6 py-4">
+                                        <div class="text-xs text-gray-400 mt-1 flex items-center gap-1">
+                                            <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"></path></svg>
+                                            {{ $item->lokasi }}
+                                        </div>
                                         @if($item->kategori)
-                                            <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium border" style="background-color: {{ $item->kategori->warna_label }}20; color: {{ $item->kategori->warna_label }}; border-color: {{ $item->kategori->warna_label }}50;">
+                                            <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium mt-1" style="background-color: {{ $item->kategori->warna_label }}20; color: {{ $item->kategori->warna_label }};">
                                                 {{ $item->kategori->nama_kategori }}
                                             </span>
-                                        @else
-                                            <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium border bg-gray-100 text-gray-800 border-gray-300">Tanpa Kategori</span>
                                         @endif
-                                        
-                                        <div class="text-xs text-gray-600 mt-2 flex items-start">
-                                            <svg class="w-4 h-4 mr-1 text-gray-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
-                                            <span class="line-clamp-1">{{ $item->lokasi }}</span>
-                                        </div>
+                                    </td>
+                                    <td class="px-6 py-4">
+                                        @php $label = $statusLabels[$item->status] ?? $item->status; $class = $statusClasses[$item->status] ?? 'bg-gray-100 text-gray-800 border-gray-200'; @endphp
+                                        <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-bold uppercase tracking-wider border {{ $class }}">
+                                            {{ $label }}
+                                        </span>
+                                        @if($item->status === 'ditolak' && $item->catatan_penolakan)
+                                            <div class="text-xs text-red-600 mt-1" title="{{ $item->catatan_penolakan }}">Alasan: {{ Str::limit($item->catatan_penolakan, 30) }}</div>
+                                        @endif
+                                        @if($item->rab_file)
+                                            <div class="mt-1">
+                                                <a href="{{ asset($item->rab_file) }}" target="_blank" class="text-xs text-blue-600 hover:underline">Lihat RAB</a>
+                                            </div>
+                                        @endif
+                                        @if($item->lpj_file)
+                                            <div class="mt-1">
+                                                <a href="{{ asset($item->lpj_file) }}" target="_blank" class="text-xs text-purple-600 hover:underline">Lihat LPJ</a>
+                                            </div>
+                                        @endif
+                                    </td>
+                                    <td class="px-6 py-4">
+                                        @if($item->penugasan && $item->penugasan->count() > 0)
+                                            <div class="flex flex-wrap gap-1">
+                                                @foreach($item->penugasan as $p)
+                                                    <span class="inline-flex items-center px-2 py-0.5 rounded text-xs bg-gray-100 text-gray-700 border border-gray-200">
+                                                        {{ $p->user->name ?? '?' }}
+                                                    </span>
+                                                @endforeach
+                                            </div>
+                                        @else
+                                            <span class="text-xs text-gray-400 italic">Belum ada</span>
+                                        @endif
                                     </td>
                                     <td class="px-6 py-4 text-center">
                                         <a href="{{ route('peliputan.dokumentasi.index', $item->id) }}" class="inline-flex flex-col items-center justify-center p-2 text-indigo-600 bg-indigo-50 rounded-lg hover:bg-indigo-100 transition-colors border border-indigo-100 group">
@@ -73,16 +121,40 @@
                                             <span class="text-[10px] font-bold uppercase tracking-wider">Upload File</span>
                                         </a>
                                     </td>
-                                    <td class="px-6 py-4 text-center">
-                                        <div class="flex justify-center space-x-2">
-                                            <a href="{{ route('peliputan.kegiatan.edit', $item->id) }}" class="p-2 text-blue-600 bg-blue-50 rounded-lg hover:bg-blue-100 transition-colors">
-                                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg>
-                                            </a>
-                                            <button @click="openDelete = true" class="p-2 text-red-600 bg-red-50 rounded-lg hover:bg-red-100 transition-colors">
-                                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
-                                            </button>
+                                    <td class="px-6 py-4">
+                                        <div class="flex flex-col gap-1.5">
+                                            @if(in_array($item->status, ['draf']))
+                                                <form action="{{ route('peliputan.kegiatan.ajukan', $item->id) }}" method="POST">
+                                                    @csrf
+                                                    <button type="submit" class="w-full text-xs px-2 py-1 bg-blue-600 text-white rounded hover:bg-blue-700">Ajukan</button>
+                                                </form>
+                                            @endif
+                                            @if(in_array($item->status, ['disetujui']))
+                                                <form action="{{ route('peliputan.kegiatan.mulai', $item->id) }}" method="POST">
+                                                    @csrf
+                                                    <button type="submit" class="w-full text-xs px-2 py-1 bg-indigo-600 text-white rounded hover:bg-indigo-700">Mulai</button>
+                                                </form>
+                                            @endif
+                                            @if(in_array($item->status, ['pelaksanaan']))
+                                                <form action="{{ route('peliputan.kegiatan.selesai', $item->id) }}" method="POST">
+                                                    @csrf
+                                                    <button type="submit" class="w-full text-xs px-2 py-1 bg-emerald-600 text-white rounded hover:bg-emerald-700">Selesai</button>
+                                                </form>
+                                            @endif
+                                            @if(in_array($item->status, ['selesai']))
+                                                <button @click="openLpj = true" class="w-full text-xs px-2 py-1 bg-purple-600 text-white rounded hover:bg-purple-700">Upload LPJ</button>
+                                            @endif
+                                            <div class="flex gap-1">
+                                                <a href="{{ route('peliputan.kegiatan.edit', $item->id) }}" class="flex-1 text-center text-xs px-2 py-1 text-blue-600 bg-blue-50 rounded hover:bg-blue-100">
+                                                    Edit
+                                                </a>
+                                                <button @click="openDelete = true" class="flex-1 text-center text-xs px-2 py-1 text-red-600 bg-red-50 rounded hover:bg-red-100">
+                                                    Hapus
+                                                </button>
+                                            </div>
                                         </div>
 
+                                        {{-- Modal Hapus --}}
                                         <div x-show="openDelete" style="display: none;" class="relative z-50">
                                             <div class="fixed inset-0 bg-gray-900 bg-opacity-75"></div>
                                             <div class="fixed inset-0 z-10 overflow-y-auto">
@@ -93,7 +165,7 @@
                                                             <div class="p-6 text-center">
                                                                 <svg class="mx-auto mb-4 text-red-500 w-12 h-12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
                                                                 <h3 class="mb-2 text-lg font-bold text-gray-900">Hapus Jadwal</h3>
-                                                                <p class="mb-6 text-sm text-gray-500">Yakin hapus jadwal <b>{{ $item->judul_kegiatan }}</b>? Seluruh foto dokumentasi di dalamnya juga akan terhapus.</p>
+                                                                <p class="mb-6 text-sm text-gray-500">Yakin hapus jadwal <b>{{ $item->judul_kegiatan }}</b>?</p>
                                                                 <div class="flex justify-center gap-3">
                                                                     <button type="button" @click="openDelete = false" class="px-4 py-2 bg-white border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50">Batal</button>
                                                                     <button type="submit" class="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700">Ya, Hapus</button>
@@ -104,11 +176,35 @@
                                                 </div>
                                             </div>
                                         </div>
+
+                                        {{-- Modal LPJ --}}
+                                        <div x-show="openLpj" style="display: none;" class="relative z-50">
+                                            <div class="fixed inset-0 bg-gray-900 bg-opacity-75"></div>
+                                            <div class="fixed inset-0 z-10 overflow-y-auto">
+                                                <div class="flex min-h-full items-center justify-center p-4 text-center">
+                                                    <div class="relative transform overflow-hidden rounded-xl bg-white text-left shadow-2xl transition-all sm:w-full sm:max-w-md" @click.away="openLpj = false">
+                                                        <form action="{{ route('peliputan.kegiatan.upload-lpj', $item->id) }}" method="POST" enctype="multipart/form-data">
+                                                            @csrf
+                                                            <div class="p-6">
+                                                                <h3 class="text-lg font-bold text-gray-900 mb-4">Upload LPJ Kegiatan</h3>
+                                                                <p class="text-sm text-gray-500 mb-4">Upload Laporan Pertanggungjawaban untuk kegiatan: <b>{{ $item->judul_kegiatan }}</b></p>
+                                                                <input type="file" name="lpj_file" required accept=".pdf,.doc,.docx,.xls,.xlsx" class="w-full rounded-lg border-gray-300 shadow-sm focus:border-gray-900 focus:ring-gray-900">
+                                                                <p class="text-xs text-gray-400 mt-1">Format: PDF, DOC, XLS. Maks 20MB</p>
+                                                            </div>
+                                                            <div class="bg-gray-50 px-6 py-4 flex justify-end gap-3 rounded-b-xl">
+                                                                <button type="button" @click="openLpj = false" class="px-4 py-2 bg-white border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50">Batal</button>
+                                                                <button type="submit" class="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700">Upload LPJ</button>
+                                                            </div>
+                                                        </form>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
                                     </td>
                                 </tr>
                             @empty
                                 <tr>
-                                    <td colspan="5" class="px-6 py-10 text-center text-gray-500">Belum ada jadwal kegiatan yang ditambahkan.</td>
+                                    <td colspan="6" class="px-6 py-10 text-center text-gray-500">Belum ada jadwal kegiatan yang ditambahkan.</td>
                                 </tr>
                             @endforelse
                         </tbody>

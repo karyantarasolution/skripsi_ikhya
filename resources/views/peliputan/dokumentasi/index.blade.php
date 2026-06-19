@@ -5,7 +5,7 @@
                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path></svg>
             </a>
             <div>
-                <h2 class="font-bold text-2xl text-gray-900 leading-tight">Dokumentasi & Arsip</h2>
+                <h2 class="font-bold text-2xl text-gray-900 leading-tight">Album Dokumentasi</h2>
                 <p class="text-sm text-gray-600 mt-1">Kelola file peliputan untuk kegiatan yang dipilih.</p>
             </div>
         </div>
@@ -102,7 +102,10 @@
                         
                         <div class="p-3 bg-white">
                             <p class="text-xs font-bold text-gray-900 truncate" title="{{ $doc->nama_file }}">{{ $doc->nama_file }}</p>
-                            <p class="text-[10px] text-gray-500 font-mono mt-0.5 uppercase">{{ $doc->tipe_file }}</p>
+                            <p class="text-[10px] text-gray-500 mt-0.5">Tipe: {{ $doc->tipe_file }}</p>
+                            @if($doc->user)
+                                <p class="text-[10px] text-gray-400 mt-0.5">Oleh: {{ $doc->user->name }}</p>
+                            @endif
                         </div>
 
                         <div class="absolute inset-0 bg-gray-900 bg-opacity-70 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center gap-3 backdrop-blur-sm">

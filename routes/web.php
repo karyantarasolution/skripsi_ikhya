@@ -8,6 +8,7 @@ use App\Http\Controllers\Admin\UserController;
 use App\Http\Controllers\Admin\PenandatanganController;
 use App\Http\Controllers\Admin\KegiatanController;
 use App\Http\Controllers\Admin\DokumentasiController;
+use App\Http\Controllers\Admin\PenugasanController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\Admin\LaporanController;
 
@@ -40,6 +41,16 @@ Route::middleware('auth')->group(function () {
         Route::resource('kategori', KategoriKegiatanController::class)->except(['create', 'show', 'edit']);
         Route::resource('user', UserController::class)->except(['create', 'show', 'edit']); 
         Route::resource('penandatangan', PenandatanganController::class)->except(['create', 'show', 'edit']);
+
+        Route::prefix('penugasan')->name('penugasan.')->group(function () {
+            Route::get('/', [PenugasanController::class, 'index'])->name('index');
+            Route::get('/create', [PenugasanController::class, 'create'])->name('create');
+            Route::post('/', [PenugasanController::class, 'store'])->name('store');
+            Route::get('/{penugasan}/edit', [PenugasanController::class, 'edit'])->name('edit');
+            Route::put('/{penugasan}', [PenugasanController::class, 'update'])->name('update');
+            Route::delete('/{penugasan}', [PenugasanController::class, 'destroy'])->name('destroy');
+            Route::get('/by-staff', [PenugasanController::class, 'byStaff'])->name('by-staff');
+        });
     });
 
     Route::middleware('role:staf')->prefix('staf')->name('staf.')->group(function () {
@@ -53,17 +64,25 @@ Route::middleware('auth')->group(function () {
     Route::middleware('role:admin,staf')->prefix('peliputan')->name('peliputan.')->group(function () {
         Route::resource('kegiatan', KegiatanController::class);
         
+        Route::post('kegiatan/{kegiatan}/ajukan', [KegiatanController::class, 'ajukan'])->name('kegiatan.ajukan');
+        Route::post('kegiatan/{kegiatan}/mulai', [KegiatanController::class, 'mulaiPelaksanaan'])->name('kegiatan.mulai');
+        Route::post('kegiatan/{kegiatan}/selesai', [KegiatanController::class, 'selesai'])->name('kegiatan.selesai');
+        Route::post('kegiatan/{kegiatan}/upload-lpj', [KegiatanController::class, 'uploadLpj'])->name('kegiatan.upload-lpj');
+
         Route::get('kegiatan/{kegiatan}/dokumentasi', [DokumentasiController::class, 'index'])->name('dokumentasi.index');
         Route::post('kegiatan/{kegiatan}/dokumentasi', [DokumentasiController::class, 'store'])->name('dokumentasi.store');
         Route::delete('dokumentasi/{dokumentasi}', [DokumentasiController::class, 'destroy'])->name('dokumentasi.destroy');
         Route::get('arsip-global', [DokumentasiController::class, 'arsipGlobal'])->name('arsip.global');
     });
 
+    Route::middleware('role:pimpinan')->prefix('persetujuan')->name('persetujuan.')->group(function () {
+        Route::post('kegiatan/{kegiatan}/approve', [KegiatanController::class, 'approve'])->name('kegiatan.approve');
+        Route::post('kegiatan/{kegiatan}/tolak', [KegiatanController::class, 'tolak'])->name('kegiatan.tolak');
+    });
+
     Route::middleware('role:admin,pimpinan')->prefix('laporan')->name('laporan.')->group(function () {
-        // Halaman Menu Laporan
         Route::get('/', [LaporanController::class, 'index'])->name('index');
         
-        // 8 ROUTE CETAK PDF
         Route::get('/cetak-semua', [LaporanController::class, 'cetakSemua'])->name('cetak.semua');
         Route::get('/cetak-tanggal', [LaporanController::class, 'cetakTanggal'])->name('cetak.tanggal');
         Route::get('/cetak-kategori', [LaporanController::class, 'cetakKategori'])->name('cetak.kategori');
@@ -72,6 +91,7 @@ Route::middleware('auth')->group(function () {
         Route::get('/cetak-statistik-kategori', [LaporanController::class, 'cetakStatistikKategori'])->name('cetak.statistik-kategori');
         Route::get('/cetak-statistik-bulan', [LaporanController::class, 'cetakStatistikBulan'])->name('cetak.statistik-bulan');
         Route::get('/cetak-penandatangan', [LaporanController::class, 'cetakPenandatangan'])->name('cetak.penandatangan');
+        Route::get('/cetak-statistik-upload', [LaporanController::class, 'cetakStatistikUpload'])->name('cetak.statistik-upload');
     });
 });
 

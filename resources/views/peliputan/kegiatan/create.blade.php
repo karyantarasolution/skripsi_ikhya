@@ -6,7 +6,7 @@
             </a>
             <div>
                 <h2 class="font-semibold text-2xl text-gray-800 leading-tight">Tambah Jadwal Baru</h2>
-                <p class="text-sm text-gray-500 mt-1">Input data agenda kegiatan pimpinan.</p>
+                <p class="text-sm text-gray-500 mt-1">Input data agenda kegiatan dan RAB (Rencana Anggaran Belanja).</p>
             </div>
         </div>
     </x-slot>
@@ -14,7 +14,7 @@
     <div class="py-8">
         <div class="max-w-4xl mx-auto sm:px-6 lg:px-8">
             <div class="bg-white overflow-hidden shadow-lg sm:rounded-xl border border-gray-100">
-                <form action="{{ route('peliputan.kegiatan.store') }}" method="POST" class="p-6 sm:p-8">
+                <form action="{{ route('peliputan.kegiatan.store') }}" method="POST" enctype="multipart/form-data" class="p-6 sm:p-8">
                     @csrf
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                         
@@ -56,6 +56,27 @@
                         <div class="md:col-span-2">
                             <label class="block text-sm font-semibold text-gray-700 mb-2">Keterangan / Deskripsi Singkat</label>
                             <textarea name="deskripsi" rows="3" placeholder="Tambahan informasi kegiatan..." class="w-full rounded-lg border-gray-300 shadow-sm focus:border-gray-900 focus:ring-gray-900 transition-colors"></textarea>
+                        </div>
+
+                        <div class="md:col-span-2">
+                            <label class="block text-sm font-semibold text-gray-700 mb-2">Upload File RAB (Rencana Anggaran Belanja)</label>
+                            <input type="file" name="rab_file" accept=".pdf,.doc,.docx,.xls,.xlsx,.jpg,.jpeg,.png" class="w-full rounded-lg border-gray-300 shadow-sm focus:border-gray-900 focus:ring-gray-900 transition-colors">
+                            <p class="text-xs text-gray-400 mt-1">Format: PDF, DOC, XLS, JPG, PNG. Maks 20MB.</p>
+                        </div>
+
+                        <div class="md:col-span-2">
+                            <label class="block text-sm font-semibold text-gray-700 mb-2">Penugasan Staf Peliput</label>
+                            <div class="grid grid-cols-2 md:grid-cols-3 gap-3 p-4 bg-gray-50 rounded-lg border border-gray-200">
+                                @forelse($staf as $s)
+                                    <label class="flex items-center gap-2 p-2 bg-white rounded border border-gray-200 hover:border-gray-400 cursor-pointer">
+                                        <input type="checkbox" name="penugasan[]" value="{{ $s->id }}" class="rounded border-gray-300 text-gray-900 focus:ring-gray-900">
+                                        <span class="text-sm text-gray-700">{{ $s->name }}</span>
+                                    </label>
+                                @empty
+                                    <p class="text-sm text-gray-500 col-span-full">Belum ada staf terdaftar.</p>
+                                @endforelse
+                            </div>
+                            <p class="text-xs text-gray-400 mt-1">Pilih staf yang akan ditugaskan untuk meliput kegiatan ini. Jika lebih dari satu, otomatis menjadi tim.</p>
                         </div>
 
                     </div>

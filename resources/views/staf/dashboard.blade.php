@@ -7,7 +7,7 @@
     <div class="py-8">
         <div class="max-w-7xl mx-auto sm:px-6 lg:px-8 space-y-6">
             
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
                 <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6 flex items-center gap-4 border-l-4 border-l-indigo-500">
                     <div class="p-4 bg-indigo-50 text-indigo-600 rounded-lg"><svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg></div>
                     <div>
@@ -28,6 +28,63 @@
                         <p class="text-sm font-semibold text-gray-500 uppercase">Dokumentasi Arsip</p>
                         <p class="text-2xl font-black text-gray-900">{{ $total_dokumentasi }}</p>
                     </div>
+                </div>
+                <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6 flex items-center gap-4 border-l-4 border-l-purple-500">
+                    <div class="p-4 bg-purple-50 text-purple-600 rounded-lg"><svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg></div>
+                    <div>
+                        <p class="text-sm font-semibold text-gray-500 uppercase">Upload Saya</p>
+                        <p class="text-2xl font-black text-gray-900">{{ $upload_saya }}</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+                <div class="px-6 py-5 border-b border-gray-100 bg-gray-50 flex justify-between items-center">
+                    <h3 class="text-lg font-bold text-gray-900">Penugasan Liputan Saya</h3>
+                </div>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left text-sm text-gray-600">
+                        <thead class="bg-white text-gray-400 uppercase text-[10px] font-bold tracking-wider">
+                            <tr>
+                                <th class="px-6 py-4">Kegiatan</th>
+                                <th class="px-6 py-4">Tanggal</th>
+                                <th class="px-6 py-4">Kategori</th>
+                                <th class="px-6 py-4">Jenis</th>
+                                <th class="px-6 py-4">Status Kegiatan</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-gray-100">
+                            @forelse($penugasan_saya as $p)
+                                <tr class="hover:bg-gray-50 transition-colors">
+                                    <td class="px-6 py-4 font-semibold text-gray-900">{{ $p->kegiatan->judul_kegiatan }}</td>
+                                    <td class="px-6 py-4">{{ \Carbon\Carbon::parse($p->kegiatan->tanggal)->format('d M Y') }}</td>
+                                    <td class="px-6 py-4">
+                                        <span class="px-2 py-1 rounded text-xs font-medium bg-gray-100 text-gray-600">
+                                            {{ $p->kegiatan->kategori->nama_kategori ?? 'Umum' }}
+                                        </span>
+                                    </td>
+                                    <td class="px-6 py-4">
+                                        <span class="text-xs font-bold uppercase {{ $p->jenis == 'tim' ? 'text-blue-600' : 'text-emerald-600' }}">
+                                            {{ $p->jenis }}
+                                        </span>
+                                    </td>
+                                    <td class="px-6 py-4">
+                                        @php
+                                            $statusClasses = ['draf'=>'bg-gray-100 text-gray-800','diajukan'=>'bg-blue-100 text-blue-800','disetujui'=>'bg-green-100 text-green-800','ditolak'=>'bg-red-100 text-red-800','pelaksanaan'=>'bg-indigo-100 text-indigo-800','selesai'=>'bg-emerald-100 text-emerald-800','lpj'=>'bg-purple-100 text-purple-800'];
+                                            $sc = $statusClasses[$p->kegiatan->status] ?? 'bg-gray-100 text-gray-800';
+                                        @endphp
+                                        <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-bold uppercase {{ $sc }}">
+                                            {{ $p->kegiatan->status }}
+                                        </span>
+                                    </td>
+                                </tr>
+                            @empty
+                                <tr>
+                                    <td colspan="5" class="px-6 py-8 text-center text-gray-500 font-medium">Belum ada penugasan untuk Anda.</td>
+                                </tr>
+                            @endforelse
+                        </tbody>
+                    </table>
                 </div>
             </div>
 

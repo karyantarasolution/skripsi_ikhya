@@ -18,6 +18,12 @@ class Kegiatan extends Model
         'lokasi',
         'pejabat_hadir',
         'deskripsi',
+        'status',
+        'rab_file',
+        'lpj_file',
+        'catatan_penolakan',
+        'approved_by',
+        'approved_at',
     ];
 
     public function kategori()
@@ -33,5 +39,15 @@ class Kegiatan extends Model
     public function dokumentasi()
     {
         return $this->hasMany(Dokumentasi::class, 'kegiatan_id');
+    }
+
+    public function penugasan()
+    {
+        return $this->hasMany(PenugasanLiputan::class, 'kegiatan_id');
+    }
+
+    public function approval()
+    {
+        return $this->belongsTo(User::class, 'approved_by');
     }
 }

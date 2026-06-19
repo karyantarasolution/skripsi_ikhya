@@ -204,4 +204,29 @@ class LaporanController extends Controller
 
         return $this->generatePdf('laporan.pdf.penandatangan', $data, 'daftar_pejabat_penandatangan.pdf');
     }
+
+    public function cetakStatistikUpload(Request $request)
+    {
+        $penandatangan = $this->getCommonCetakData($request);
+
+        $staf = User::whereIn('role', ['admin', 'staf'])
+            ->withCount('dokumentasi')
+            ->with(['dokumentasi' => function ($q) {
+                $q->with('kegiatan')->orderBy('created_at', 'desc');
+            }])
+            ->orderBy('dokumentasi_count', 'desc')
+            ->get();
+
+        $total_upload = Dokumentasi::count();
+
+        $data = [
+            'title' => 'Laporan Statistik Upload Dokumentasi per Staf',
+            'staf' => $staf,
+            'total_upload' => $total_upload,
+            'penandatangan' => $penandatangan,
+            'sub_judul' => 'Rekapitulasi Jumlah Upload File Dokumentasi Berdasarkan Staf Peliput'
+        ];
+
+        return $this->generatePdf('laporan.pdf.statistik-upload', $data, 'rekap_statistik_upload_staf.pdf');
+    }
 }

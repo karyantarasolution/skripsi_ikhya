@@ -6,6 +6,8 @@ use App\Http\Controllers\Controller;
 use App\Models\Penandatangan;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
+use Illuminate\Support\Facades\File;
+use SimpleSoftwareIO\QrCode\Facades\QrCode;
 
 class PenandatanganController extends Controller
 {
@@ -13,6 +15,31 @@ class PenandatanganController extends Controller
     {
         $penandatangan = Penandatangan::orderBy('id', 'desc')->get();
         return view('admin.penandatangan.index', compact('penandatangan'));
+    }
+
+    private function generateQrCode($pejabat)
+    {
+        $qrDirectory = public_path('uploads/qrcodes');
+        if (!File::exists($qrDirectory)) {
+            File::makeDirectory($qrDirectory, 0755, true);
+        }
+
+        $qrFileName = 'qr_' . $pejabat->id . '_' . time() . '.png';
+        $qrPath = 'uploads/qrcodes/' . $qrFileName;
+
+        $data = json_encode([
+            'id' => $pejabat->id,
+            'nama' => $pejabat->nama_pejabat,
+            'nip' => $pejabat->nip,
+            'jabatan' => $pejabat->jabatan,
+        ]);
+
+        QrCode::format('png')
+            ->size(300)
+            ->margin(2)
+            ->generate($data, public_path($qrPath));
+
+        return $qrPath;
     }
 
     public function store(Request $request)
@@ -24,12 +51,12 @@ class PenandatanganController extends Controller
             'is_aktif' => 'required|boolean',
         ]);
 
-        // Opsional: Logika pembuatan QR Code bisa ditambahkan di sini nanti
-        // Saat ini kita simpan data dasarnya dulu
+        $pejabat = Penandatangan::create($request->all());
 
-        Penandatangan::create($request->all());
+        $qrPath = $this->generateQrCode($pejabat);
+        $pejabat->update(['qr_code_path' => $qrPath]);
 
-        return redirect()->route('admin.penandatangan.index')->with('success', 'Data Penandatangan berhasil ditambahkan.');
+        return redirect()->route('admin.penandatangan.index')->with('success', 'Data Penandatangan berhasil ditambahkan dengan QR Code.');
     }
 
     public function update(Request $request, $id)
@@ -45,12 +72,20 @@ class PenandatanganController extends Controller
 
         $pejabat->update($request->all());
 
-        return redirect()->route('admin.penandatangan.index')->with('success', 'Data Penandatangan berhasil diperbarui.');
+        $qrPath = $this->generateQrCode($pejabat);
+        $pejabat->update(['qr_code_path' => $qrPath]);
+
+        return redirect()->route('admin.penandatangan.index')->with('success', 'Data Penandatangan berhasil diperbarui dengan QR Code.');
     }
 
     public function destroy($id)
     {
         $pejabat = Penandatangan::findOrFail($id);
+
+        if ($pejabat->qr_code_path && File::exists(public_path($pejabat->qr_code_path))) {
+            File::delete(public_path($pejabat->qr_code_path));
+        }
+
         $pejabat->delete();
 
         return redirect()->route('admin.penandatangan.index')->with('success', 'Data Penandatangan berhasil dihapus.');

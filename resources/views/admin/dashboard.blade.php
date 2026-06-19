@@ -38,6 +38,65 @@
                 </div>
             </div>
 
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
+                <div class="bg-blue-50 border border-blue-200 rounded-xl p-4 text-center">
+                    <p class="text-xs font-bold text-blue-600 uppercase tracking-wider">Diajukan</p>
+                    <p class="text-3xl font-black text-blue-700">{{ $kegiatan_diajukan ?? 0 }}</p>
+                </div>
+                <div class="bg-green-50 border border-green-200 rounded-xl p-4 text-center">
+                    <p class="text-xs font-bold text-green-600 uppercase tracking-wider">Disetujui</p>
+                    <p class="text-3xl font-black text-green-700">{{ $kegiatan_disetujui ?? 0 }}</p>
+                </div>
+                <div class="bg-purple-50 border border-purple-200 rounded-xl p-4 text-center">
+                    <p class="text-xs font-bold text-purple-600 uppercase tracking-wider">LPJ Upload</p>
+                    <p class="text-3xl font-black text-purple-700">{{ $kegiatan_lpj ?? 0 }}</p>
+                </div>
+                <div class="bg-indigo-50 border border-indigo-200 rounded-xl p-4 text-center">
+                    <p class="text-xs font-bold text-indigo-600 uppercase tracking-wider">Total Penugasan</p>
+                    <p class="text-3xl font-black text-indigo-700">{{ $total_penugasan ?? 0 }}</p>
+                </div>
+            </div>
+
+            <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+                <div class="px-6 py-5 border-b border-gray-100 bg-gray-50">
+                    <h3 class="text-lg font-bold text-gray-900">Rekap Upload per Staf Peliput</h3>
+                </div>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left text-sm text-gray-600">
+                        <thead class="bg-white text-gray-400 uppercase text-[10px] font-bold tracking-wider">
+                            <tr>
+                                <th class="px-6 py-4">Nama Staf</th>
+                                <th class="px-6 py-4 text-center">Jumlah Upload File</th>
+                                <th class="px-6 py-4 text-center">Ranking</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-gray-100">
+                            @forelse($staf_upload as $index => $s)
+                                <tr class="hover:bg-gray-50 transition-colors">
+                                    <td class="px-6 py-4 font-semibold text-gray-900">{{ $s->name }}</td>
+                                    <td class="px-6 py-4 text-center">
+                                        <span class="inline-flex items-center justify-center px-3 py-1 rounded-full text-sm font-bold bg-indigo-100 text-indigo-800">
+                                            {{ $s->dokumentasi_count }} file
+                                        </span>
+                                    </td>
+                                    <td class="px-6 py-4 text-center">
+                                        @if($index == 0)
+                                            <span class="text-yellow-500 text-lg">&#9733;</span>
+                                        @else
+                                            <span class="text-gray-300">#{{ $index + 1 }}</span>
+                                        @endif
+                                    </td>
+                                </tr>
+                            @empty
+                                <tr>
+                                    <td colspan="3" class="px-6 py-8 text-center text-gray-500 font-medium">Belum ada data upload.</td>
+                                </tr>
+                            @endforelse
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
             <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
                 <div class="px-6 py-5 border-b border-gray-100 bg-gray-50">
                     <h3 class="text-lg font-bold text-gray-900">Agenda Kegiatan Mendatang</h3>

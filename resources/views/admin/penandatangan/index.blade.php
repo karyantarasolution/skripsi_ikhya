@@ -41,6 +41,7 @@
                                 <th scope="col" class="px-6 py-4">Nama & NIP</th>
                                 <th scope="col" class="px-6 py-4">Jabatan</th>
                                 <th scope="col" class="px-6 py-4 text-center">Status</th>
+                                <th scope="col" class="px-6 py-4 text-center">QR Code</th>
                                 <th scope="col" class="px-6 py-4 text-center">Aksi</th>
                             </tr>
                         </thead>
@@ -61,6 +62,13 @@
                                             <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
                                                 <span class="w-2 h-2 mr-1.5 bg-gray-500 rounded-full"></span> Tidak Aktif
                                             </span>
+                                        @endif
+                                    </td>
+                                    <td class="px-6 py-4 text-center">
+                                        @if($item->qr_code_path)
+                                            <img src="{{ asset($item->qr_code_path) }}" alt="QR {{ $item->nama_pejabat }}" class="inline-block w-12 h-12 border border-gray-200 rounded">
+                                        @else
+                                            <span class="text-xs text-gray-400">Belum ada</span>
                                         @endif
                                     </td>
                                     <td class="px-6 py-4 text-center">
@@ -139,7 +147,7 @@
                                 </tr>
                             @empty
                                 <tr>
-                                    <td colspan="4" class="px-6 py-10 text-center text-gray-500">Belum ada data Pejabat/Penandatangan.</td>
+                                    <td colspan="5" class="px-6 py-10 text-center text-gray-500">Belum ada data Pejabat/Penandatangan.</td>
                                 </tr>
                             @endforelse
                         </tbody>
