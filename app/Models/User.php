@@ -65,4 +65,14 @@ class User extends Authenticatable
     {
         return $this->hasMany(Kegiatan::class, 'approved_by');
     }
+
+    public function suratPerjalananDinas()
+    {
+        return $this->hasMany(SuratPerjalananDinas::class, 'user_id');
+    }
+
+    public function lpjTugas()
+    {
+        return $this->hasMany(LpjTugas::class, 'user_id');
+    }
 }

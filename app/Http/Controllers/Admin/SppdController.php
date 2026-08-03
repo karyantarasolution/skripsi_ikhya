@@ -1,0 +1,202 @@
+<?php
+
+namespace App\Http\Controllers\Admin;
+
+use App\Http\Controllers\Controller;
+use App\Models\SuratPerjalananDinas;
+use App\Models\SppdBiaya;
+use App\Models\Kegiatan;
+use App\Models\Penandatangan;
+use App\Support\NomorSurat;
+use Barryvdh\DomPDF\Facade\Pdf;
+use Carbon\Carbon;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
+
+class SppdController extends Controller
+{
+    public function index()
+    {
+        $sppd = SuratPerjalananDinas::with(['user', 'kegiatan', 'biaya'])
+            ->when(Auth::user()->role === 'staf', function ($q) {
+                $q->where('user_id', Auth::id());
+            })
+            ->orderBy('created_at', 'desc')
+            ->get();
+
+        return view('dokumen.sppd.index', compact('sppd'));
+    }
+
+    public function create()
+    {
+        $kegiatan = Kegiatan::whereNotIn('status', ['draf', 'ditolak'])->orderBy('tanggal', 'desc')->get();
+        return view('dokumen.sppd.create', compact('kegiatan'));
+    }
+
+    public function store(Request $request)
+    {
+        $data = $this->validated($request);
+
+        $data['user_id'] = Auth::id();
+        $data['status'] = 'draf';
+
+        $sppd = SuratPerjalananDinas::create($data);
+
+        $this->simpanBiaya($sppd, $request);
+
+        $tahun = Carbon::parse($sppd->tanggal_berangkat)->format('Y');
+        $urutan = SuratPerjalananDinas::whereYear('tanggal_berangkat', $tahun)->count() + 1;
+        $sppd->update(['no_surat' => NomorSurat::format('SPPD', $urutan, Carbon::parse($sppd->tanggal_berangkat))]);
+
+        return redirect()->route('dokumen.sppd.index')->with('success', 'Surat Perjalanan Dinas berhasil dibuat.');
+    }
+
+    public function edit($id)
+    {
+        $sppd = SuratPerjalananDinas::with('biaya')->findOrFail($id);
+
+        if (Auth::user()->role === 'staf' && $sppd->user_id !== Auth::id()) {
+            abort(403);
+        }
+
+        $kegiatan = Kegiatan::whereNotIn('status', ['draf', 'ditolak'])->orderBy('tanggal', 'desc')->get();
+        return view('dokumen.sppd.edit', compact('sppd', 'kegiatan'));
+    }
+
+    public function update(Request $request, $id)
+    {
+        $sppd = SuratPerjalananDinas::findOrFail($id);
+
+        if (Auth::user()->role === 'staf' && $sppd->user_id !== Auth::id()) {
+            abort(403);
+        }
+
+        if (in_array($sppd->status, ['disetujui', 'ditolak'])) {
+            return back()->with('error', 'SPPD yang sudah disetujui/ditolak tidak dapat diubah.');
+        }
+
+        $data = $this->validated($request);
+        $sppd->update($data);
+
+        $sppd->biaya()->delete();
+        $this->simpanBiaya($sppd, $request);
+
+        return redirect()->route('dokumen.sppd.index')->with('success', 'Surat Perjalanan Dinas berhasil diperbarui.');
+    }
+
+    public function destroy($id)
+    {
+        $sppd = SuratPerjalananDinas::findOrFail($id);
+
+        if (Auth::user()->role === 'staf' && $sppd->user_id !== Auth::id()) {
+            abort(403);
+        }
+
+        if (in_array($sppd->status, ['disetujui', 'ditolak'])) {
+            return back()->with('error', 'SPPD yang sudah disetujui/ditolak tidak dapat dihapus.');
+        }
+
+        $sppd->delete();
+
+        return redirect()->route('dokumen.sppd.index')->with('success', 'Surat Perjalanan Dinas berhasil dihapus.');
+    }
+
+    public function ajukan($id)
+    {
+        $sppd = SuratPerjalananDinas::findOrFail($id);
+
+        if (Auth::user()->role === 'staf' && $sppd->user_id !== Auth::id()) {
+            abort(403);
+        }
+
+        $sppd->update(['status' => 'diajukan']);
+
+        return redirect()->route('dokumen.sppd.index')->with('success', 'SPPD diajukan untuk persetujuan.');
+    }
+
+    public function setujui($id)
+    {
+        if (Auth::user()->role !== 'admin') {
+            abort(403);
+        }
+
+        $sppd = SuratPerjalananDinas::findOrFail($id);
+        $sppd->update(['status' => 'disetujui', 'catatan' => null]);
+
+        return redirect()->route('dokumen.sppd.index')->with('success', 'SPPD berhasil disetujui.');
+    }
+
+    public function tolak(Request $request, $id)
+    {
+        if (Auth::user()->role !== 'admin') {
+            abort(403);
+        }
+
+        $request->validate(['catatan' => 'required|string']);
+
+        $sppd = SuratPerjalananDinas::findOrFail($id);
+        $sppd->update(['status' => 'ditolak', 'catatan' => $request->catatan]);
+
+        return redirect()->route('dokumen.sppd.index')->with('success', 'SPPD ditolak.');
+    }
+
+    public function cetak($id)
+    {
+        $sppd = SuratPerjalananDinas::with(['user', 'kegiatan', 'biaya'])->findOrFail($id);
+        $penandatangan = Penandatangan::where('is_aktif', true)->first();
+
+        if (!$penandatangan) {
+            return back()->with('error', 'Data penandatangan aktif belum diatur. Hubungi admin.');
+        }
+
+        $lamaHari = Carbon::parse($sppd->tanggal_berangkat)->diffInDays(Carbon::parse($sppd->tanggal_kembali)) + 1;
+
+        $pdf = Pdf::loadView('dokumen.sppd.pdf', [
+            'sppd' => $sppd,
+            'penandatangan' => $penandatangan,
+            'lamaHari' => $lamaHari,
+        ]);
+
+        return $pdf->setPaper('a4', 'portrait')->stream('sppd_' . $sppd->id . '.pdf');
+    }
+
+    private function validated(Request $request)
+    {
+        return $request->validate([
+            'kegiatan_id' => 'nullable|exists:kegiatans,id',
+            'tujuan' => 'required|string|max:255',
+            'kota_tujuan' => 'required|string|max:255',
+            'tanggal_berangkat' => 'required|date',
+            'tanggal_kembali' => 'required|date|after_or_equal:tanggal_berangkat',
+            'kendaraan' => 'required|string|max:255',
+            'pembebanan' => 'required|string|max:255',
+            'keterangan' => 'nullable|string',
+        ]);
+    }
+
+    private function simpanBiaya(SuratPerjalananDinas $sppd, Request $request): void
+    {
+        $uraianList = $request->biaya_uraian ?? [];
+        $volumeList = $request->biaya_volume ?? [];
+        $satuanList = $request->biaya_satuan ?? [];
+        $hargaList = $request->biaya_harga ?? [];
+
+        foreach ($uraianList as $index => $uraian) {
+            if (empty($uraian)) {
+                continue;
+            }
+
+            $volume = (int)($volumeList[$index] ?? 1);
+            $satuan = $satuanList[$index] ?? null;
+            $harga = (float)($hargaList[$index] ?? 0);
+
+            $sppd->biaya()->create([
+                'uraian' => $uraian,
+                'volume' => $volume ?: 1,
+                'satuan' => $satuan,
+                'harga_satuan' => $harga,
+                'total' => $volume * $harga,
+            ]);
+        }
+    }
+}

@@ -11,6 +11,9 @@ use App\Http\Controllers\Admin\DokumentasiController;
 use App\Http\Controllers\Admin\PenugasanController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\Admin\LaporanController;
+use App\Http\Controllers\Admin\SuratTugasController;
+use App\Http\Controllers\Admin\SppdController;
+use App\Http\Controllers\Admin\LpjTugasController;
 
 Route::get('/', function () {
     return view('welcome');
@@ -73,6 +76,32 @@ Route::middleware('auth')->group(function () {
         Route::post('kegiatan/{kegiatan}/dokumentasi', [DokumentasiController::class, 'store'])->name('dokumentasi.store');
         Route::delete('dokumentasi/{dokumentasi}', [DokumentasiController::class, 'destroy'])->name('dokumentasi.destroy');
         Route::get('arsip-global', [DokumentasiController::class, 'arsipGlobal'])->name('arsip.global');
+    });
+
+    Route::middleware('role:admin,staf')->prefix('dokumen')->name('dokumen.')->group(function () {
+        Route::get('/surat-tugas', [SuratTugasController::class, 'index'])->name('surat-tugas.index');
+        Route::get('/surat-tugas/{penugasan}/cetak', [SuratTugasController::class, 'cetak'])->name('surat-tugas.cetak');
+
+        Route::get('/perjalanan-dinas', [SppdController::class, 'index'])->name('sppd.index');
+        Route::get('/perjalanan-dinas/create', [SppdController::class, 'create'])->name('sppd.create');
+        Route::post('/perjalanan-dinas', [SppdController::class, 'store'])->name('sppd.store');
+        Route::get('/perjalanan-dinas/{sppd}/edit', [SppdController::class, 'edit'])->name('sppd.edit');
+        Route::put('/perjalanan-dinas/{sppd}', [SppdController::class, 'update'])->name('sppd.update');
+        Route::delete('/perjalanan-dinas/{sppd}', [SppdController::class, 'destroy'])->name('sppd.destroy');
+        Route::post('/perjalanan-dinas/{sppd}/ajukan', [SppdController::class, 'ajukan'])->name('sppd.ajukan');
+        Route::post('/perjalanan-dinas/{sppd}/setujui', [SppdController::class, 'setujui'])->name('sppd.setujui');
+        Route::post('/perjalanan-dinas/{sppd}/tolak', [SppdController::class, 'tolak'])->name('sppd.tolak');
+        Route::get('/perjalanan-dinas/{sppd}/cetak', [SppdController::class, 'cetak'])->name('sppd.cetak');
+
+        Route::get('/lpj-tugas', [LpjTugasController::class, 'index'])->name('lpj-tugas.index');
+        Route::get('/lpj-tugas/create', [LpjTugasController::class, 'create'])->name('lpj-tugas.create');
+        Route::post('/lpj-tugas', [LpjTugasController::class, 'store'])->name('lpj-tugas.store');
+        Route::get('/lpj-tugas/{lpjTugas}/edit', [LpjTugasController::class, 'edit'])->name('lpj-tugas.edit');
+        Route::put('/lpj-tugas/{lpjTugas}', [LpjTugasController::class, 'update'])->name('lpj-tugas.update');
+        Route::delete('/lpj-tugas/bukti/{bukti}', [LpjTugasController::class, 'destroyBukti'])->name('lpj-tugas.bukti.destroy');
+        Route::post('/lpj-tugas/{lpjTugas}/bukti', [LpjTugasController::class, 'tambahBukti'])->name('lpj-tugas.bukti.store');
+        Route::delete('/lpj-tugas/{lpjTugas}', [LpjTugasController::class, 'destroy'])->name('lpj-tugas.destroy');
+        Route::get('/lpj-tugas/{lpjTugas}/cetak', [LpjTugasController::class, 'cetak'])->name('lpj-tugas.cetak');
     });
 
     Route::middleware('role:pimpinan')->prefix('persetujuan')->name('persetujuan.')->group(function () {
