@@ -28,12 +28,15 @@
                         </div>
                         <div>
                             <label class="block text-sm font-semibold text-gray-700 mb-2">Pilih Staf Peliput <span class="text-red-500">*</span></label>
-                            <div class="grid grid-cols-2 md:grid-cols-3 gap-3 p-4 bg-gray-50 rounded-lg border border-gray-200">
+                            <div class="grid grid-cols-1 gap-2 p-4 bg-gray-50 rounded-lg border border-gray-200">
                                 @foreach($staf as $s)
-                                    <label class="flex items-center gap-2 p-2 bg-white rounded border border-gray-200 hover:border-gray-400 cursor-pointer">
-                                        <input type="checkbox" name="user_id[]" value="{{ $s->id }}" class="rounded border-gray-300 text-gray-900 focus:ring-gray-900">
-                                        <span class="text-sm text-gray-700">{{ $s->name }}</span>
-                                    </label>
+                                    <div class="flex flex-col sm:flex-row sm:items-center gap-2 p-2 bg-white rounded border border-gray-200">
+                                        <label class="flex items-center gap-2 sm:w-52 flex-shrink-0 cursor-pointer">
+                                            <input type="checkbox" name="user_id[]" value="{{ $s->id }}" class="rounded border-gray-300 text-gray-900 focus:ring-gray-900">
+                                            <span class="text-sm text-gray-700">{{ $s->name }}</span>
+                                        </label>
+                                        <input type="text" name="tugas[{{ $s->id }}]" class="flex-1 w-full rounded-lg border-gray-300 shadow-sm focus:border-gray-900 focus:ring-gray-900 text-xs" placeholder="Tugas di lapangan (cth: Peliputan foto & video)">
+                                    </div>
                                 @endforeach
                             </div>
                         </div>

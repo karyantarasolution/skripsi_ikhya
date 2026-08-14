@@ -13,24 +13,35 @@
     <p>Kepala Biro Administrasi Pimpinan dengan ini memerintahkan kepada:</p>
 
     <table class="table-data">
+        <thead>
+            <tr>
+                <th style="width: 5%;">No</th>
+                <th style="width: 30%;">Nama / NIP</th>
+                <th>Jabatan</th>
+            </tr>
+        </thead>
+        <tbody>
+            @forelse($sppd->peserta as $index => $ps)
+                <tr>
+                    <td class="text-center">{{ $index + 1 }}</td>
+                    <td>
+                        <strong>{{ $ps->user->name ?? '-' }}</strong>
+                        <br>NIP. {{ $ps->user->nip ?? '-' }}
+                    </td>
+                    <td>{{ ucfirst($ps->user->role) }}</td>
+                </tr>
+            @empty
+                <tr>
+                    <td colspan="3" class="text-center">-</td>
+                </tr>
+            @endforelse
+        </tbody>
+    </table>
+
+    <p>Untuk kepentingan:</p>
+    <table class="table-data">
         <tr>
-            <td style="width: 30%;">Nama</td>
-            <td>: <strong>{{ $sppd->user->name }}</strong></td>
-        </tr>
-        <tr>
-            <td>NIP</td>
-            <td>: -</td>
-        </tr>
-        <tr>
-            <td>Pangkat / Golongan</td>
-            <td>: -</td>
-        </tr>
-        <tr>
-            <td>Jabatan</td>
-            <td>: {{ ucfirst($sppd->user->role) }}</td>
-        </tr>
-        <tr>
-            <td>Untuk Kepentingan</td>
+            <td style="width: 30%;">Untuk Kepentingan</td>
             <td>: {{ $sppd->tujuan }}</td>
         </tr>
         <tr>
@@ -100,7 +111,7 @@
     <div class="ttd-container clearfix">
         <div class="ttd-box">
             <p>Banjarbaru, {{ \Carbon\Carbon::now()->translatedFormat('d F Y') }}</p>
-            <p><strong>{{ $penandatangan->jabatan }}</strong></p>
+            <p><strong>Kepala Biro Administrasi Pimpinan</strong></p>
             <div class="ttd-space"></div>
             <p style="text-decoration: underline; font-weight: bold;">{{ $penandatangan->nama_pejabat }}</p>
             <p>NIP. {{ $penandatangan->nip }}</p>

@@ -6,7 +6,7 @@
             </a>
             <div>
                 <h2 class="font-semibold text-2xl text-gray-800 leading-tight">Buat LPJ Tugas</h2>
-                <p class="text-sm text-gray-500 mt-1">Lengkapi data pertanggungjawaban dan unggah bukti pelaksanaan tugas.</p>
+                <p class="text-sm text-gray-500 mt-1">Satu LPJ per kegiatan, memuat seluruh staf yang bertugas.</p>
             </div>
         </div>
     </x-slot>
@@ -23,9 +23,9 @@
                 </div>
             @endif
 
-            @if($penugasan->isEmpty())
+            @if($kegiatan->isEmpty())
                 <div class="bg-amber-50 border-l-4 border-amber-500 p-4 rounded-r-lg shadow-sm">
-                    <p class="text-sm font-medium text-amber-800">Anda belum memiliki penugasan liputan. LPJ dibuat berdasarkan penugasan yang diberikan admin.</p>
+                    <p class="text-sm font-medium text-amber-800">Belum ada kegiatan dengan penugasan yang dapat dibuatkan LPJ. LPJ dibuat berdasarkan kegiatan yang memiliki staf bertugas.</p>
                 </div>
             @endif
 
@@ -34,13 +34,17 @@
                     @csrf
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <div class="md:col-span-2">
-                            <label class="block text-sm font-semibold text-gray-700 mb-2">Pilih Penugasan <span class="text-red-500">*</span></label>
-                            <select name="penugasan_id" required class="w-full rounded-lg border-gray-300 shadow-sm focus:border-gray-900 focus:ring-gray-900">
-                                <option value="" disabled selected>-- Pilih Penugasan --</option>
-                                @foreach($penugasan as $p)
-                                    <option value="{{ $p->id }}">{{ \Carbon\Carbon::parse($p->kegiatan->tanggal)->format('d/m/Y') }} - {{ $p->kegiatan->judul_kegiatan }}</option>
+                            <label class="block text-sm font-semibold text-gray-700 mb-2">Pilih Kegiatan <span class="text-red-500">*</span></label>
+                            <select name="kegiatan_id" required class="w-full rounded-lg border-gray-300 shadow-sm focus:border-gray-900 focus:ring-gray-900">
+                                <option value="" disabled selected>-- Pilih Kegiatan --</option>
+                                @foreach($kegiatan as $k)
+                                    <option value="{{ $k->id }}">
+                                        {{ \Carbon\Carbon::parse($k->tanggal)->format('d/m/Y') }} - {{ $k->judul_kegiatan }}
+                                        ({{ $k->penugasan->pluck('user.name')->implode(', ') }})
+                                    </option>
                                 @endforeach
                             </select>
+                            <p class="text-xs text-gray-400 mt-1">Semua staf yang bertugas pada kegiatan tersebut otomatis tercantum dalam LPJ ini.</p>
                         </div>
                         <div>
                             <label class="block text-sm font-semibold text-gray-700 mb-2">Nama Penanggung Jawab di Lokasi <span class="text-red-500">*</span></label>

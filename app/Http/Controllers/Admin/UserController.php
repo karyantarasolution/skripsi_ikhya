@@ -21,6 +21,7 @@ class UserController extends Controller
         $request->validate([
             'name' => 'required|string|max:255',
             'email' => 'required|string|email|max:255|unique:users',
+            'nip' => 'nullable|string|max:50',
             'password' => 'required|string|min:8',
             'role' => 'required|in:admin,staf,pimpinan',
         ]);
@@ -28,6 +29,7 @@ class UserController extends Controller
         User::create([
             'name' => $request->name,
             'email' => $request->email,
+            'nip' => $request->nip,
             'password' => Hash::make($request->password),
             'role' => $request->role,
         ]);
@@ -42,6 +44,7 @@ class UserController extends Controller
         $request->validate([
             'name' => 'required|string|max:255',
             'email' => ['required', 'string', 'email', 'max:255', Rule::unique('users')->ignore($user->id)],
+            'nip' => 'nullable|string|max:50',
             'role' => 'required|in:admin,staf,pimpinan',
             'password' => 'nullable|string|min:8', // Boleh kosong jika tidak ingin ganti password
         ]);
@@ -49,6 +52,7 @@ class UserController extends Controller
         $dataToUpdate = [
             'name' => $request->name,
             'email' => $request->email,
+            'nip' => $request->nip,
             'role' => $request->role,
         ];
 

@@ -168,7 +168,7 @@
                                 <div class="space-y-4">
                                     <div>
                                         <label class="block text-sm font-medium text-gray-700 mb-1">Nama Lengkap & Gelar <span class="text-red-500">*</span></label>
-                                        <input type="text" name="nama_pejabat" required placeholder="H. Sahbirin Noor, S.Sos., M.H." class="w-full rounded-lg border-gray-300 shadow-sm focus:border-gray-900 focus:ring-gray-900">
+                                        <input type="text" name="nama_pejabat" required placeholder="Nama Kepala Biro Administrasi Pimpinan" class="w-full rounded-lg border-gray-300 shadow-sm focus:border-gray-900 focus:ring-gray-900">
                                     </div>
                                     <div>
                                         <label class="block text-sm font-medium text-gray-700 mb-1">NIP <span class="text-red-500">*</span></label>
@@ -176,7 +176,7 @@
                                     </div>
                                     <div>
                                         <label class="block text-sm font-medium text-gray-700 mb-1">Jabatan <span class="text-red-500">*</span></label>
-                                        <input type="text" name="jabatan" required placeholder="Gubernur Kalimantan Selatan" class="w-full rounded-lg border-gray-300 shadow-sm focus:border-gray-900 focus:ring-gray-900">
+                                        <input type="text" name="jabatan" required placeholder="Kepala Biro Administrasi Pimpinan" class="w-full rounded-lg border-gray-300 shadow-sm focus:border-gray-900 focus:ring-gray-900">
                                     </div>
                                     <div>
                                         <label class="block text-sm font-medium text-gray-700 mb-1">Status Penggunaan <span class="text-red-500">*</span></label>

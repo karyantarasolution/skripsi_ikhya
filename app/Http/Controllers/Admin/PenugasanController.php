@@ -33,6 +33,7 @@ class PenugasanController extends Controller
             'user_id' => 'required|array',
             'user_id.*' => 'exists:users,id',
             'jenis' => 'required|in:individu,tim',
+            'tugas' => 'nullable|array',
             'keterangan' => 'nullable|string',
         ]);
 
@@ -41,6 +42,7 @@ class PenugasanController extends Controller
                 'kegiatan_id' => $request->kegiatan_id,
                 'user_id' => $userId,
                 'jenis' => $request->jenis,
+                'tugas' => $request->tugas[$userId] ?? null,
                 'keterangan' => $request->keterangan,
             ]);
         }
@@ -60,6 +62,7 @@ class PenugasanController extends Controller
         $request->validate([
             'user_id' => 'required|exists:users,id',
             'jenis' => 'required|in:individu,tim',
+            'tugas' => 'nullable|string',
             'keterangan' => 'nullable|string',
         ]);
 

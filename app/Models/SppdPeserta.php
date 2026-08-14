@@ -4,19 +4,18 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 
-class PenugasanLiputan extends Model
+class SppdPeserta extends Model
 {
+    protected $table = 'sppd_peserta';
+
     protected $fillable = [
-        'kegiatan_id',
+        'sppd_id',
         'user_id',
-        'jenis',
-        'tugas',
-        'keterangan',
     ];
 
-    public function kegiatan()
+    public function sppd()
     {
-        return $this->belongsTo(Kegiatan::class, 'kegiatan_id');
+        return $this->belongsTo(SuratPerjalananDinas::class, 'sppd_id');
     }
 
     public function user()

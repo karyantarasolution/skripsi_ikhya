@@ -6,7 +6,7 @@
             </a>
             <div>
                 <h2 class="font-semibold text-2xl text-gray-800 leading-tight">Kelola LPJ Tugas</h2>
-                <p class="text-sm text-gray-500 mt-1">{{ $lpj->no_lpj }} - {{ $lpj->penugasan->kegiatan->judul_kegiatan }}</p>
+                <p class="text-sm text-gray-500 mt-1">{{ $lpj->no_lpj }} - {{ $lpj->kegiatan->judul_kegiatan }}</p>
             </div>
         </div>
     </x-slot>

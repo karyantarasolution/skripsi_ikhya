@@ -12,6 +12,7 @@ class LpjTugas extends Model
     protected $fillable = [
         'user_id',
         'penugasan_id',
+        'kegiatan_id',
         'no_lpj',
         'uraian_hasil',
         'penanggung_jawab_nama',
@@ -27,6 +28,11 @@ class LpjTugas extends Model
     public function penugasan()
     {
         return $this->belongsTo(PenugasanLiputan::class, 'penugasan_id');
+    }
+
+    public function kegiatan()
+    {
+        return $this->belongsTo(Kegiatan::class, 'kegiatan_id');
     }
 
     public function bukti()

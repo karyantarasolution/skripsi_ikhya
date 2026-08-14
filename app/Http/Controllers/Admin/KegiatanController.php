@@ -41,6 +41,7 @@ class KegiatanController extends Controller
             'rab_file' => 'nullable|file|mimes:pdf,doc,docx,xls,xlsx,jpg,jpeg,png|max:20480',
             'penugasan' => 'nullable|array',
             'penugasan.*' => 'exists:users,id',
+            'tugas' => 'nullable|array',
         ]);
 
         $data = $request->except(['rab_file', 'penugasan']);
@@ -64,6 +65,7 @@ class KegiatanController extends Controller
                 $kegiatan->penugasan()->create([
                     'user_id' => $userId,
                     'jenis' => count($request->penugasan) > 1 ? 'tim' : 'individu',
+                    'tugas' => $request->tugas[$userId] ?? null,
                 ]);
             }
         }
@@ -92,6 +94,7 @@ class KegiatanController extends Controller
             'rab_file' => 'nullable|file|mimes:pdf,doc,docx,xls,xlsx,jpg,jpeg,png|max:20480',
             'penugasan' => 'nullable|array',
             'penugasan.*' => 'exists:users,id',
+            'tugas' => 'nullable|array',
         ]);
 
         $kegiatan = Kegiatan::findOrFail($id);
@@ -118,6 +121,7 @@ class KegiatanController extends Controller
                 $kegiatan->penugasan()->create([
                     'user_id' => $userId,
                     'jenis' => count($request->penugasan) > 1 ? 'tim' : 'individu',
+                    'tugas' => $request->tugas[$userId] ?? null,
                 ]);
             }
         }

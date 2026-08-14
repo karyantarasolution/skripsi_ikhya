@@ -3,12 +3,13 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Models\Kegiatan;
 use App\Models\LpjTugas;
 use App\Models\LpjTugasBukti;
-use App\Models\PenugasanLiputan;
 use App\Models\Penandatangan;
 use App\Support\NomorSurat;
 use Barryvdh\DomPDF\Facade\Pdf;
+use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\File;
@@ -17,9 +18,14 @@ class LpjTugasController extends Controller
 {
     public function index()
     {
-        $lpj = LpjTugas::with(['penugasan.kegiatan', 'user', 'bukti'])
+        $lpj = LpjTugas::with(['kegiatan.penugasan.user', 'user', 'bukti'])
             ->when(Auth::user()->role === 'staf', function ($q) {
-                $q->where('user_id', Auth::id());
+                $q->where(function ($q) {
+                    $q->where('user_id', Auth::id())
+                        ->orWhereHas('kegiatan.penugasan', function ($p) {
+                            $p->where('user_id', Auth::id());
+                        });
+                });
             })
             ->orderBy('created_at', 'desc')
             ->get();
@@ -29,20 +35,23 @@ class LpjTugasController extends Controller
 
     public function create()
     {
-        $penugasan = PenugasanLiputan::with(['kegiatan'])
+        $kegiatan = Kegiatan::with(['penugasan.user'])
             ->when(Auth::user()->role !== 'admin', function ($q) {
-                $q->where('user_id', Auth::id());
+                $q->whereHas('penugasan', function ($p) {
+                    $p->where('user_id', Auth::id());
+                });
             })
-            ->orderBy('created_at', 'desc')
+            ->whereHas('penugasan')
+            ->orderBy('tanggal', 'desc')
             ->get();
 
-        return view('dokumen.lpj-tugas.create', compact('penugasan'));
+        return view('dokumen.lpj-tugas.create', compact('kegiatan'));
     }
 
     public function store(Request $request)
     {
         $request->validate([
-            'penugasan_id' => 'required|exists:penugasan_liputans,id',
+            'kegiatan_id' => 'required|exists:kegiatans,id',
             'uraian_hasil' => 'nullable|string',
             'penanggung_jawab_nama' => 'required|string|max:255',
             'penanggung_jawab_jabatan' => 'required|string|max:255',
@@ -51,24 +60,27 @@ class LpjTugasController extends Controller
             'bukti.*' => 'file|mimes:jpg,jpeg,png,pdf,doc,docx|max:20480',
         ]);
 
-        $penugasan = PenugasanLiputan::findOrFail($request->penugasan_id);
+        $kegiatan = Kegiatan::with('penugasan')->findOrFail($request->kegiatan_id);
 
-        if ($penugasan->user_id !== Auth::id() && Auth::user()->role !== 'admin') {
+        if (Auth::user()->role !== 'admin' && ! $kegiatan->penugasan->contains('user_id', Auth::id())) {
             abort(403);
         }
 
+        $penugasanId = $kegiatan->penugasan->first()?->id;
+
         $lpj = LpjTugas::create([
-            'user_id' => $penugasan->user_id,
-            'penugasan_id' => $request->penugasan_id,
+            'user_id' => Auth::id(),
+            'penugasan_id' => $penugasanId,
+            'kegiatan_id' => $request->kegiatan_id,
             'uraian_hasil' => $request->uraian_hasil,
             'penanggung_jawab_nama' => $request->penanggung_jawab_nama,
             'penanggung_jawab_jabatan' => $request->penanggung_jawab_jabatan,
             'tanggal_lpj' => $request->tanggal_lpj,
         ]);
 
-        $tahun = \Carbon\Carbon::parse($lpj->tanggal_lpj)->format('Y');
+        $tahun = Carbon::parse($lpj->tanggal_lpj)->format('Y');
         $urutan = LpjTugas::whereYear('tanggal_lpj', $tahun)->count() + 1;
-        $lpj->update(['no_lpj' => NomorSurat::format('LPJ', $urutan, \Carbon\Carbon::parse($lpj->tanggal_lpj))]);
+        $lpj->update(['no_lpj' => NomorSurat::format('LPJ', $urutan, Carbon::parse($lpj->tanggal_lpj))]);
 
         $this->simpanBukti($lpj, $request);
 
@@ -77,7 +89,7 @@ class LpjTugasController extends Controller
 
     public function edit($id)
     {
-        $lpj = LpjTugas::with(['penugasan.kegiatan', 'user', 'bukti'])->findOrFail($id);
+        $lpj = LpjTugas::with(['kegiatan.penugasan.user', 'user', 'bukti'])->findOrFail($id);
 
         if ($lpj->user_id !== Auth::id() && Auth::user()->role !== 'admin') {
             abort(403);
@@ -167,11 +179,11 @@ class LpjTugasController extends Controller
 
     public function cetak($id)
     {
-        $lpj = LpjTugas::with(['penugasan.kegiatan', 'penugasan.user', 'user', 'bukti'])->findOrFail($id);
+        $lpj = LpjTugas::with(['kegiatan.penugasan.user', 'user', 'bukti'])->findOrFail($id);
 
         $penandatangan = Penandatangan::where('is_aktif', true)->first();
 
-        if (!$penandatangan) {
+        if (! $penandatangan) {
             return back()->with('error', 'Data penandatangan aktif belum diatur. Hubungi admin.');
         }
 
@@ -180,28 +192,28 @@ class LpjTugasController extends Controller
             'penandatangan' => $penandatangan,
         ]);
 
-        return $pdf->setPaper('a4', 'portrait')->stream('lpj_tugas_' . $lpj->id . '.pdf');
+        return $pdf->setPaper('a4', 'portrait')->stream('lpj_tugas_'.$lpj->id.'.pdf');
     }
 
     private function simpanBukti(LpjTugas $lpj, Request $request): void
     {
-        if (!$request->hasFile('bukti')) {
+        if (! $request->hasFile('bukti')) {
             return;
         }
 
         $destinationPath = public_path('uploads/lpj-bukti');
-        if (!File::exists($destinationPath)) {
+        if (! File::exists($destinationPath)) {
             File::makeDirectory($destinationPath, 0755, true);
         }
 
         $keterangan = $request->keterangan;
 
         foreach ($request->file('bukti') as $index => $file) {
-            $fileName = time() . '_' . uniqid() . '.' . $file->getClientOriginalExtension();
+            $fileName = time().'_'.uniqid().'.'.$file->getClientOriginalExtension();
             $file->move($destinationPath, $fileName);
 
             $lpj->bukti()->create([
-                'file' => 'uploads/lpj-bukti/' . $fileName,
+                'file' => 'uploads/lpj-bukti/'.$fileName,
                 'keterangan' => is_array($keterangan) ? ($keterangan[$index] ?? null) : $keterangan,
             ]);
         }

@@ -3,10 +3,11 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
-use App\Models\SuratPerjalananDinas;
-use App\Models\SppdBiaya;
 use App\Models\Kegiatan;
 use App\Models\Penandatangan;
+use App\Models\SppdPeserta;
+use App\Models\SuratPerjalananDinas;
+use App\Models\User;
 use App\Support\NomorSurat;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Carbon\Carbon;
@@ -17,9 +18,11 @@ class SppdController extends Controller
 {
     public function index()
     {
-        $sppd = SuratPerjalananDinas::with(['user', 'kegiatan', 'biaya'])
+        $sppd = SuratPerjalananDinas::with(['user', 'kegiatan', 'biaya', 'peserta'])
             ->when(Auth::user()->role === 'staf', function ($q) {
-                $q->where('user_id', Auth::id());
+                $q->whereHas('peserta', function ($p) {
+                    $p->where('user_id', Auth::id());
+                });
             })
             ->orderBy('created_at', 'desc')
             ->get();
@@ -29,8 +32,15 @@ class SppdController extends Controller
 
     public function create()
     {
-        $kegiatan = Kegiatan::whereNotIn('status', ['draf', 'ditolak'])->orderBy('tanggal', 'desc')->get();
-        return view('dokumen.sppd.create', compact('kegiatan'));
+        $kegiatan = Kegiatan::with('penugasan.user')->whereNotIn('status', ['draf', 'ditolak'])->orderBy('tanggal', 'desc')->get();
+        $staf = User::whereIn('role', ['admin', 'staf'])->orderBy('name')->get();
+
+        $kegiatanPeserta = [];
+        foreach ($kegiatan as $k) {
+            $kegiatanPeserta[$k->id] = $k->penugasan->pluck('user_id')->toArray();
+        }
+
+        return view('dokumen.sppd.create', compact('kegiatan', 'staf', 'kegiatanPeserta'));
     }
 
     public function store(Request $request)
@@ -42,6 +52,7 @@ class SppdController extends Controller
 
         $sppd = SuratPerjalananDinas::create($data);
 
+        $this->simpanPeserta($sppd, $request);
         $this->simpanBiaya($sppd, $request);
 
         $tahun = Carbon::parse($sppd->tanggal_berangkat)->format('Y');
@@ -53,21 +64,28 @@ class SppdController extends Controller
 
     public function edit($id)
     {
-        $sppd = SuratPerjalananDinas::with('biaya')->findOrFail($id);
+        $sppd = SuratPerjalananDinas::with(['biaya', 'peserta'])->findOrFail($id);
 
-        if (Auth::user()->role === 'staf' && $sppd->user_id !== Auth::id()) {
+        if (Auth::user()->role === 'staf' && ! $sppd->peserta->contains('user_id', Auth::id())) {
             abort(403);
         }
 
-        $kegiatan = Kegiatan::whereNotIn('status', ['draf', 'ditolak'])->orderBy('tanggal', 'desc')->get();
-        return view('dokumen.sppd.edit', compact('sppd', 'kegiatan'));
+        $kegiatan = Kegiatan::with('penugasan.user')->whereNotIn('status', ['draf', 'ditolak'])->orderBy('tanggal', 'desc')->get();
+        $staf = User::whereIn('role', ['admin', 'staf'])->orderBy('name')->get();
+
+        $kegiatanPeserta = [];
+        foreach ($kegiatan as $k) {
+            $kegiatanPeserta[$k->id] = $k->penugasan->pluck('user_id')->toArray();
+        }
+
+        return view('dokumen.sppd.edit', compact('sppd', 'kegiatan', 'staf', 'kegiatanPeserta'));
     }
 
     public function update(Request $request, $id)
     {
         $sppd = SuratPerjalananDinas::findOrFail($id);
 
-        if (Auth::user()->role === 'staf' && $sppd->user_id !== Auth::id()) {
+        if (Auth::user()->role === 'staf' && ! $sppd->peserta()->where('user_id', Auth::id())->exists()) {
             abort(403);
         }
 
@@ -77,6 +95,9 @@ class SppdController extends Controller
 
         $data = $this->validated($request);
         $sppd->update($data);
+
+        $sppd->peserta()->delete();
+        $this->simpanPeserta($sppd, $request);
 
         $sppd->biaya()->delete();
         $this->simpanBiaya($sppd, $request);
@@ -88,7 +109,7 @@ class SppdController extends Controller
     {
         $sppd = SuratPerjalananDinas::findOrFail($id);
 
-        if (Auth::user()->role === 'staf' && $sppd->user_id !== Auth::id()) {
+        if (Auth::user()->role === 'staf' && ! $sppd->peserta()->where('user_id', Auth::id())->exists()) {
             abort(403);
         }
 
@@ -105,7 +126,7 @@ class SppdController extends Controller
     {
         $sppd = SuratPerjalananDinas::findOrFail($id);
 
-        if (Auth::user()->role === 'staf' && $sppd->user_id !== Auth::id()) {
+        if (Auth::user()->role === 'staf' && ! $sppd->peserta()->where('user_id', Auth::id())->exists()) {
             abort(403);
         }
 
@@ -142,10 +163,10 @@ class SppdController extends Controller
 
     public function cetak($id)
     {
-        $sppd = SuratPerjalananDinas::with(['user', 'kegiatan', 'biaya'])->findOrFail($id);
+        $sppd = SuratPerjalananDinas::with(['user', 'kegiatan', 'biaya', 'peserta.user'])->findOrFail($id);
         $penandatangan = Penandatangan::where('is_aktif', true)->first();
 
-        if (!$penandatangan) {
+        if (! $penandatangan) {
             return back()->with('error', 'Data penandatangan aktif belum diatur. Hubungi admin.');
         }
 
@@ -157,7 +178,7 @@ class SppdController extends Controller
             'lamaHari' => $lamaHari,
         ]);
 
-        return $pdf->setPaper('a4', 'portrait')->stream('sppd_' . $sppd->id . '.pdf');
+        return $pdf->setPaper('a4', 'portrait')->stream('sppd_'.$sppd->id.'.pdf');
     }
 
     private function validated(Request $request)
@@ -171,7 +192,19 @@ class SppdController extends Controller
             'kendaraan' => 'required|string|max:255',
             'pembebanan' => 'required|string|max:255',
             'keterangan' => 'nullable|string',
+            'peserta' => 'required|array|min:1',
+            'peserta.*' => 'exists:users,id',
         ]);
+    }
+
+    private function simpanPeserta(SuratPerjalananDinas $sppd, Request $request): void
+    {
+        foreach (array_unique($request->peserta) as $userId) {
+            SppdPeserta::create([
+                'sppd_id' => $sppd->id,
+                'user_id' => $userId,
+            ]);
+        }
     }
 
     private function simpanBiaya(SuratPerjalananDinas $sppd, Request $request): void
@@ -186,9 +219,9 @@ class SppdController extends Controller
                 continue;
             }
 
-            $volume = (int)($volumeList[$index] ?? 1);
+            $volume = (int) ($volumeList[$index] ?? 1);
             $satuan = $satuanList[$index] ?? null;
-            $harga = (float)($hargaList[$index] ?? 0);
+            $harga = (float) ($hargaList[$index] ?? 0);
 
             $sppd->biaya()->create([
                 'uraian' => $uraian,

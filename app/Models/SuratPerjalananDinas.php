@@ -41,6 +41,11 @@ class SuratPerjalananDinas extends Model
         return $this->hasMany(SppdBiaya::class, 'sppd_id');
     }
 
+    public function peserta()
+    {
+        return $this->hasMany(SppdPeserta::class, 'sppd_id')->with('user');
+    }
+
     public function totalBiaya()
     {
         return $this->biaya->sum('total');

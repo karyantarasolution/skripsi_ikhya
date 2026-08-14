@@ -76,7 +76,11 @@
                                             {{ substr($item->name, 0, 1) }}
                                         </div>
                                     </td>
-                                    <td class="px-6 py-4 font-semibold text-gray-800">{{ $item->name }}</td>
+                                    <td class="px-6 py-4 font-semibold text-gray-800">{{ $item->name }}
+                                        @if($item->nip)
+                                            <div class="text-xs text-gray-400 font-normal">NIP. {{ $item->nip }}</div>
+                                        @endif
+                                    </td>
                                     <td class="px-6 py-4 text-gray-500">{{ $item->email }}</td>
                                     <td class="px-6 py-4 text-center">
                                         @if($item->role === 'admin')
@@ -126,6 +130,10 @@
                                                                             <div>
                                                                                 <label class="block text-sm font-medium text-gray-700 mb-1">Nama Lengkap <span class="text-red-500">*</span></label>
                                                                                 <input type="text" name="name" value="{{ $item->name }}" required class="w-full rounded-lg border-gray-300 shadow-sm focus:border-gray-900 focus:ring-gray-900 transition-colors">
+                                                                            </div>
+                                                                            <div>
+                                                                                <label class="block text-sm font-medium text-gray-700 mb-1">NIP</label>
+                                                                                <input type="text" name="nip" value="{{ $item->nip }}" class="w-full rounded-lg border-gray-300 shadow-sm focus:border-gray-900 focus:ring-gray-900 transition-colors" placeholder="cth: 19780101 200501 1 001">
                                                                             </div>
                                                                             <div>
                                                                                 <label class="block text-sm font-medium text-gray-700 mb-1">Email Login <span class="text-red-500">*</span></label>
@@ -240,6 +248,10 @@
                                             <div>
                                                 <label class="block text-sm font-medium text-gray-700 mb-1">Nama Lengkap <span class="text-red-500">*</span></label>
                                                 <input type="text" name="name" required placeholder="Contoh: Budi Santoso" class="w-full rounded-lg border-gray-300 shadow-sm focus:border-gray-900 focus:ring-gray-900 transition-colors">
+                                            </div>
+                                            <div>
+                                                <label class="block text-sm font-medium text-gray-700 mb-1">NIP</label>
+                                                <input type="text" name="nip" placeholder="cth: 19780101 200501 1 001" class="w-full rounded-lg border-gray-300 shadow-sm focus:border-gray-900 focus:ring-gray-900 transition-colors">
                                             </div>
                                             <div>
                                                 <label class="block text-sm font-medium text-gray-700 mb-1">Email Login <span class="text-red-500">*</span></label>

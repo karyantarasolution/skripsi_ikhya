@@ -80,7 +80,7 @@ Route::middleware('auth')->group(function () {
 
     Route::middleware('role:admin,staf')->prefix('dokumen')->name('dokumen.')->group(function () {
         Route::get('/surat-tugas', [SuratTugasController::class, 'index'])->name('surat-tugas.index');
-        Route::get('/surat-tugas/{penugasan}/cetak', [SuratTugasController::class, 'cetak'])->name('surat-tugas.cetak');
+        Route::get('/surat-tugas/{kegiatan}/cetak', [SuratTugasController::class, 'cetak'])->name('surat-tugas.cetak');
 
         Route::get('/perjalanan-dinas', [SppdController::class, 'index'])->name('sppd.index');
         Route::get('/perjalanan-dinas/create', [SppdController::class, 'create'])->name('sppd.create');

@@ -66,17 +66,20 @@
 
                         <div class="md:col-span-2">
                             <label class="block text-sm font-semibold text-gray-700 mb-2">Penugasan Staf Peliput</label>
-                            <div class="grid grid-cols-2 md:grid-cols-3 gap-3 p-4 bg-gray-50 rounded-lg border border-gray-200">
+                            <div class="grid grid-cols-1 gap-2 p-4 bg-gray-50 rounded-lg border border-gray-200">
                                 @forelse($staf as $s)
-                                    <label class="flex items-center gap-2 p-2 bg-white rounded border border-gray-200 hover:border-gray-400 cursor-pointer">
-                                        <input type="checkbox" name="penugasan[]" value="{{ $s->id }}" class="rounded border-gray-300 text-gray-900 focus:ring-gray-900">
-                                        <span class="text-sm text-gray-700">{{ $s->name }}</span>
-                                    </label>
+                                    <div class="flex flex-col sm:flex-row sm:items-center gap-2 p-2 bg-white rounded border border-gray-200">
+                                        <label class="flex items-center gap-2 sm:w-52 flex-shrink-0 cursor-pointer">
+                                            <input type="checkbox" name="penugasan[]" value="{{ $s->id }}" class="rounded border-gray-300 text-gray-900 focus:ring-gray-900">
+                                            <span class="text-sm text-gray-700">{{ $s->name }}</span>
+                                        </label>
+                                        <input type="text" name="tugas[{{ $s->id }}]" class="flex-1 w-full rounded-lg border-gray-300 shadow-sm focus:border-gray-900 focus:ring-gray-900 text-xs" placeholder="Tugas di lapangan (cth: Peliputan foto & video)">
+                                    </div>
                                 @empty
-                                    <p class="text-sm text-gray-500 col-span-full">Belum ada staf terdaftar.</p>
+                                    <p class="text-sm text-gray-500">Belum ada staf terdaftar.</p>
                                 @endforelse
                             </div>
-                            <p class="text-xs text-gray-400 mt-1">Pilih staf yang akan ditugaskan untuk meliput kegiatan ini. Jika lebih dari satu, otomatis menjadi tim.</p>
+                            <p class="text-xs text-gray-400 mt-1">Centang staf yang ditugaskan dan isi tugasnya. Jika lebih dari satu, otomatis menjadi tim.</p>
                         </div>
 
                     </div>

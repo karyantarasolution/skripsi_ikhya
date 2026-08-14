@@ -20,37 +20,60 @@
     <h3 class="judul">LEMBAR PERTANGGUNGJAWABAN TUGAS</h3>
     <p class="nomor">Nomor: {{ $lpj->no_lpj }}</p>
 
-    <p>Berdasarkan Surat Tugas Nomor {{ \App\Support\NomorSurat::format('ST', $lpj->penugasan->id) }}, yang bertanda tangan di bawah ini:</p>
+    <p>Berdasarkan Surat Tugas Nomor {{ \App\Support\NomorSurat::format('ST', $lpj->kegiatan->id) }}, yang bertanda tangan di bawah ini:</p>
 
-    <table class="table-data" style="width: 55%;">
-        <tr>
-            <td style="width: 30%;">Nama</td>
-            <td>: {{ $lpj->user->name }}</td>
-        </tr>
-        <tr>
-            <td>Jabatan</td>
-            <td>: {{ ucfirst($lpj->user->role) }}</td>
-        </tr>
+    <table class="table-data">
+        <thead>
+            <tr>
+                <th style="width: 5%;">No</th>
+                <th style="width: 30%;">Nama / NIP</th>
+                <th>Jabatan</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach($lpj->kegiatan->penugasan as $index => $ps)
+                <tr>
+                    <td class="text-center">{{ $index + 1 }}</td>
+                    <td>
+                        <strong>{{ $ps->user->name ?? '-' }}</strong>
+                        <br>NIP. {{ $ps->user->nip ?? '-' }}
+                    </td>
+                    <td>{{ $ps->user->role === 'admin' ? 'Staf/Admin' : 'Staf Peliput' }}</td>
+                </tr>
+            @endforeach
+        </tbody>
     </table>
 
     <p>Menyatakan dengan sesungguhnya bahwa tugas yang dilaksanakan meliputi:</p>
     <table class="table-data" style="width: 90%;">
         <tr>
             <td style="width: 30%;">Kegiatan</td>
-            <td>: {{ $lpj->penugasan->kegiatan->judul_kegiatan }}</td>
+            <td>: {{ $lpj->kegiatan->judul_kegiatan }}</td>
         </tr>
         <tr>
             <td>Hari / Tanggal</td>
-            <td>: {{ \Carbon\Carbon::parse($lpj->penugasan->kegiatan->tanggal)->translatedFormat('l, d F Y') }}</td>
+            <td>: {{ \Carbon\Carbon::parse($lpj->kegiatan->tanggal)->translatedFormat('l, d F Y') }}</td>
         </tr>
         <tr>
             <td>Tempat / Lokasi</td>
-            <td>: {{ $lpj->penugasan->kegiatan->lokasi }}</td>
+            <td>: {{ $lpj->kegiatan->lokasi }}</td>
         </tr>
         <tr>
             <td>Acara</td>
-            <td>: {{ $lpj->penugasan->kegiatan->deskripsi ?? '-' }}</td>
+            <td>: {{ $lpj->kegiatan->deskripsi ?? '-' }}</td>
         </tr>
+        @if($lpj->kegiatan->penugasan->first()?->tugas)
+            <tr>
+                <td>Tugas yang Dilaksanakan</td>
+                <td>: {{ $lpj->kegiatan->penugasan->pluck('tugas')->unique()->implode(', ') }}</td>
+            </tr>
+        @endif
+        @if($lpj->penanggung_jawab_nama)
+            <tr>
+                <td>Penanggung Jawab di Lokasi</td>
+                <td>: {{ $lpj->penanggung_jawab_nama }} ({{ $lpj->penanggung_jawab_jabatan }})</td>
+            </tr>
+        @endif
         @if($lpj->uraian_hasil)
             <tr>
                 <td>Uraian Hasil Pelaksanaan</td>
@@ -105,12 +128,15 @@
             <p>Banjarbaru, {{ \Carbon\Carbon::parse($lpj->tanggal_lpj)->translatedFormat('d F Y') }}</p>
             <p><strong>Yang Melaporkan / Petugas</strong></p>
             <div class="ttd-space"></div>
-            <p style="text-decoration: underline; font-weight: bold;">{{ $lpj->user->name }}</p>
+            @foreach($lpj->kegiatan->penugasan as $ps)
+                <p style="text-decoration: underline; font-weight: bold;">{{ $ps->user->name ?? '-' }}</p>
+            @endforeach
         </div>
         <div class="ttd-box">
-            <p><strong>Mengetahui,</strong> {{ $lpj->penanggung_jawab_jabatan }}</p>
+            <p><strong>Mengetahui,</strong><br>Kepala Biro Administrasi Pimpinan</p>
             <div class="ttd-space"></div>
-            <p style="text-decoration: underline; font-weight: bold;">{{ $lpj->penanggung_jawab_nama }}</p>
+            <p style="text-decoration: underline; font-weight: bold;">{{ $penandatangan->nama_pejabat }}</p>
+            <p>NIP. {{ $penandatangan->nip }}</p>
         </div>
     </div>
 </body>

@@ -10,7 +10,7 @@
     <h3 class="judul">SURAT TUGAS</h3>
     <p class="nomor">Nomor: {{ $noSurat }}</p>
 
-    <p>Yang bertanda tangan di bawah ini:</p>
+    <p>Yang bertanda tangan di bawah ini, <strong>{{ $penandatangan->jabatan }}</strong> atas nama Biro Administrasi Pimpinan:</p>
     <table class="table-data" style="width: 55%;">
         <tr>
             <td style="width: 30%;">Nama</td>
@@ -31,9 +31,9 @@
         <thead>
             <tr>
                 <th style="width: 5%;">No</th>
-                <th style="width: 30%;">Nama / NIP</th>
+                <th style="width: 28%;">Nama / NIP</th>
                 <th>Jabatan</th>
-                <th style="width: 12%;">Jenis</th>
+                <th style="width: 22%;">Tugas</th>
             </tr>
         </thead>
         <tbody>
@@ -42,43 +42,37 @@
                     <td class="text-center">{{ $index + 1 }}</td>
                     <td>
                         <strong>{{ $p->user->name ?? '-' }}</strong>
-                        <br>NIP. -
+                        <br>NIP. {{ $p->user->nip ?? '-' }}
                     </td>
                     <td>{{ $p->user->role === 'admin' ? 'Staf/Admin' : 'Staf Peliput' }}</td>
-                    <td class="text-center">{{ ucfirst($p->jenis) }}</td>
+                    <td>{{ $p->tugas ?? '-' }}</td>
                 </tr>
             @endforeach
         </tbody>
     </table>
 
-    <p>Untuk melaksanakan tugas liputan pada:</p>
+    <p>Untuk melaksanakan tugas pada:</p>
     <table class="table-data" style="width: 85%;">
         <tr>
             <td style="width: 30%;">Kegiatan</td>
-            <td>: {{ $penugasan->kegiatan->judul_kegiatan }}</td>
+            <td>: {{ $kegiatan->judul_kegiatan }}</td>
         </tr>
         <tr>
             <td>Hari / Tanggal</td>
-            <td>: {{ \Carbon\Carbon::parse($penugasan->kegiatan->tanggal)->translatedFormat('l, d F Y') }}</td>
+            <td>: {{ \Carbon\Carbon::parse($kegiatan->tanggal)->translatedFormat('l, d F Y') }}</td>
         </tr>
         <tr>
             <td>Waktu</td>
-            <td>: {{ \Carbon\Carbon::parse($penugasan->kegiatan->waktu)->format('H:i') }} WITA</td>
+            <td>: {{ \Carbon\Carbon::parse($kegiatan->waktu)->format('H:i') }} WITA</td>
         </tr>
         <tr>
             <td>Tempat / Lokasi</td>
-            <td>: {{ $penugasan->kegiatan->lokasi }}</td>
+            <td>: {{ $kegiatan->lokasi }}</td>
         </tr>
         <tr>
-            <td>Acara</td>
-            <td>: {{ $penugasan->kegiatan->deskripsi ?? '-' }}</td>
+            <td>Acara / Tugas</td>
+            <td>: {{ $kegiatan->deskripsi ?? '-' }}</td>
         </tr>
-        @if($penugasan->keterangan)
-            <tr>
-                <td>Keterangan</td>
-                <td>: {{ $penugasan->keterangan }}</td>
-            </tr>
-        @endif
     </table>
 
     <p>
@@ -87,8 +81,8 @@
 
     <div class="ttd-container clearfix">
         <div class="ttd-box">
-            <p>Banjarbaru, {{ \Carbon\Carbon::parse($penugasan->kegiatan->tanggal)->translatedFormat('d F Y') }}</p>
-            <p><strong>{{ $penandatangan->jabatan }}</strong></p>
+            <p>Banjarbaru, {{ \Carbon\Carbon::parse($kegiatan->tanggal)->translatedFormat('d F Y') }}</p>
+            <p><strong>Kepala Biro Administrasi Pimpinan</strong></p>
             <div class="ttd-space"></div>
             <p style="text-decoration: underline; font-weight: bold;">{{ $penandatangan->nama_pejabat }}</p>
             <p>NIP. {{ $penandatangan->nip }}</p>

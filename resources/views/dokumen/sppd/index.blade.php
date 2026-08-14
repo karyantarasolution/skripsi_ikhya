@@ -59,7 +59,17 @@
                             @forelse($sppd as $item)
                                 <tr class="hover:bg-gray-50/50 transition-colors">
                                     <td class="px-6 py-4 font-semibold text-gray-900 whitespace-nowrap">{{ $item->no_surat ?? 'Belum bernomor' }}</td>
-                                    <td class="px-6 py-4">{{ $item->user->name ?? '?' }}</td>
+                                    <td class="px-6 py-4">
+                                        <div class="flex flex-wrap gap-1">
+                                            @forelse($item->peserta as $ps)
+                                                <span class="inline-flex items-center px-2 py-1 rounded text-xs bg-indigo-50 text-indigo-700 border border-indigo-200">
+                                                    {{ $ps->user->name ?? '?' }}
+                                                </span>
+                                            @empty
+                                                <span class="text-xs text-gray-400 italic">{{ $item->user->name ?? '?' }}</span>
+                                            @endforelse
+                                        </div>
+                                    </td>
                                     <td class="px-6 py-4">
                                         <div class="font-semibold text-gray-900">{{ $item->kota_tujuan }}</div>
                                         <div class="text-xs text-gray-500">{{ $item->tujuan }}</div>

@@ -10,6 +10,8 @@
         if (empty($existingRows)) {
             $existingRows = [[ 'uraian' => '', 'volume' => 1, 'satuan' => '', 'harga' => '' ]];
         }
+
+        $initialPeserta = $sppd->peserta->pluck('user_id')->map(fn($id) => (int)$id)->toArray();
     @endphp
 
     <x-slot name="header">
@@ -37,18 +39,40 @@
             @endif
 
             <div class="bg-white overflow-hidden shadow-lg sm:rounded-xl border border-gray-100">
-                <form action="{{ route('dokumen.sppd.update', $sppd->id) }}" method="POST" class="p-6 sm:p-8" x-data="biayaForm({{ json_encode($existingRows) }})">
+                <form action="{{ route('dokumen.sppd.update', $sppd->id) }}" method="POST" class="p-6 sm:p-8"
+                      x-data="sppdForm({{ json_encode($kegiatanPeserta) }}, {{ json_encode($existingRows) }}, {{ json_encode($initialPeserta) }}, '{{ $sppd->kegiatan_id }}', '{{ $sppd->tanggal_berangkat }}', '{{ $sppd->tanggal_kembali }}')">
                     @csrf @method('PUT')
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <div class="md:col-span-2">
                             <label class="block text-sm font-semibold text-gray-700 mb-2">Kegiatan Terkait (Opsional)</label>
-                            <select name="kegiatan_id" class="w-full rounded-lg border-gray-300 shadow-sm focus:border-gray-900 focus:ring-gray-900">
+                            <select name="kegiatan_id" x-model="kegiatanId" @change="onKegiatanChange()" class="w-full rounded-lg border-gray-300 shadow-sm focus:border-gray-900 focus:ring-gray-900">
                                 <option value="">-- Tidak Terkait Kegiatan --</option>
                                 @foreach($kegiatan as $k)
-                                    <option value="{{ $k->id }}" @selected($sppd->kegiatan_id == $k->id)>{{ \Carbon\Carbon::parse($k->tanggal)->format('d/m/Y') }} - {{ $k->judul_kegiatan }}</option>
+                                    <option value="{{ $k->id }}">{{ \Carbon\Carbon::parse($k->tanggal)->format('d/m/Y') }} - {{ $k->judul_kegiatan }}</option>
                                 @endforeach
                             </select>
                         </div>
+
+                        <div class="md:col-span-2">
+                            <label class="block text-sm font-semibold text-gray-700 mb-2">Peserta Perjalanan Dinas <span class="text-red-500">*</span></label>
+                            <div class="grid grid-cols-2 md:grid-cols-3 gap-3 p-4 bg-gray-50 rounded-lg border border-gray-200">
+                                @foreach($staf as $s)
+                                    <label class="flex items-center gap-2 p-2 bg-white rounded border border-gray-200 hover:border-gray-400 cursor-pointer">
+                                        <input type="checkbox" value="{{ $s->id }}" @change="togglePeserta({{ $s->id }})"
+                                               :checked="peserta.includes({{ $s->id }})"
+                                               class="rounded border-gray-300 text-gray-900 focus:ring-gray-900">
+                                        <span class="text-sm text-gray-700">{{ $s->name }}</span>
+                                    </label>
+                                @endforeach
+                            </div>
+                            <div class="text-xs text-gray-500 mt-2">
+                                Jumlah peserta: <strong x-text="peserta.length">0</strong> orang.
+                                <template x-for="id in peserta" :key="id">
+                                    <input type="hidden" name="peserta[]" :value="id">
+                                </template>
+                            </div>
+                        </div>
+
                         <div>
                             <label class="block text-sm font-semibold text-gray-700 mb-2">Untuk Kepentingan <span class="text-red-500">*</span></label>
                             <input type="text" name="tujuan" required value="{{ old('tujuan', $sppd->tujuan) }}" class="w-full rounded-lg border-gray-300 shadow-sm focus:border-gray-900 focus:ring-gray-900">
@@ -59,11 +83,11 @@
                         </div>
                         <div>
                             <label class="block text-sm font-semibold text-gray-700 mb-2">Tanggal Berangkat <span class="text-red-500">*</span></label>
-                            <input type="date" name="tanggal_berangkat" required value="{{ old('tanggal_berangkat', $sppd->tanggal_berangkat) }}" class="w-full rounded-lg border-gray-300 shadow-sm focus:border-gray-900 focus:ring-gray-900">
+                            <input type="date" name="tanggal_berangkat" x-model="berangkat" @change="updateUangHarian()" required value="{{ old('tanggal_berangkat', $sppd->tanggal_berangkat) }}" class="w-full rounded-lg border-gray-300 shadow-sm focus:border-gray-900 focus:ring-gray-900">
                         </div>
                         <div>
                             <label class="block text-sm font-semibold text-gray-700 mb-2">Tanggal Kembali <span class="text-red-500">*</span></label>
-                            <input type="date" name="tanggal_kembali" required value="{{ old('tanggal_kembali', $sppd->tanggal_kembali) }}" class="w-full rounded-lg border-gray-300 shadow-sm focus:border-gray-900 focus:ring-gray-900">
+                            <input type="date" name="tanggal_kembali" x-model="kembali" @change="updateUangHarian()" required value="{{ old('tanggal_kembali', $sppd->tanggal_kembali) }}" class="w-full rounded-lg border-gray-300 shadow-sm focus:border-gray-900 focus:ring-gray-900">
                         </div>
                         <div>
                             <label class="block text-sm font-semibold text-gray-700 mb-2">Alat Angkutan <span class="text-red-500">*</span></label>
@@ -100,7 +124,7 @@
                                         <th class="px-4 py-3 w-10"></th>
                                     </tr>
                                 </thead>
-                                <tbody id="biaya-body">
+                                <tbody>
                                     <template x-for="(row, index) in rows" :key="index">
                                         <tr class="border-t border-gray-100">
                                             <td class="px-4 py-2"><input type="text" x-model="row.uraian" :name="'biaya_uraian[' + index + ']'" class="w-full rounded-lg border-gray-300 shadow-sm focus:border-gray-900 focus:ring-gray-900 text-xs"></td>
@@ -117,6 +141,9 @@
                                 </tbody>
                             </table>
                         </div>
+                        <p class="text-xs text-gray-400 mt-2">
+                            Volume baris "Uang Harian" terisi otomatis = <span x-text="peserta.length">0</span> peserta × <span x-text="lamaHari">1</span> hari.
+                        </p>
                     </div>
 
                     <div class="mt-8 pt-5 border-t border-gray-100 flex justify-end gap-3">
@@ -129,9 +156,41 @@
     </div>
 
     <script>
-        function biayaForm(initialRows = []) {
+        function sppdForm(kegiatanPeserta = {}, initialRows = [], initialPeserta = [], kegiatanId = '', berangkat = '', kembali = '') {
             return {
+                kegiatanId: kegiatanId,
+                peserta: initialPeserta,
+                berangkat: berangkat,
+                kembali: kembali,
+                kegiatanPeserta: kegiatanPeserta,
                 rows: (initialRows && initialRows.length) ? initialRows : [{ uraian: '', volume: 1, satuan: '', harga: '' }],
+                get lamaHari() {
+                    if (!this.berangkat || !this.kembali) return 1;
+                    const a = new Date(this.berangkat);
+                    const b = new Date(this.kembali);
+                    const diff = Math.round((b - a) / 86400000) + 1;
+                    return diff > 0 ? diff : 1;
+                },
+                onKegiatanChange() {
+                    const ids = this.kegiatanPeserta[this.kegiatanId] || [];
+                    this.peserta = ids;
+                    this.updateUangHarian();
+                },
+                togglePeserta(id) {
+                    const idx = this.peserta.indexOf(id);
+                    if (idx >= 0) {
+                        this.peserta.splice(idx, 1);
+                    } else {
+                        this.peserta.push(id);
+                    }
+                    this.updateUangHarian();
+                },
+                updateUangHarian() {
+                    const row = this.rows.find(r => (r.uraian || '').toLowerCase().includes('uang harian'));
+                    if (row) {
+                        row.volume = Math.max(1, this.peserta.length * this.lamaHari);
+                    }
+                },
                 addRow() {
                     this.rows.push({ uraian: '', volume: 1, satuan: '', harga: '' });
                 },
