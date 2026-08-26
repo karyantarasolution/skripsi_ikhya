@@ -27,6 +27,11 @@ class Kegiatan extends Model
         'kabag_reviewed_by',
         'kabag_reviewed_at',
         'kabag_catatan',
+        'ttd_status',
+        'ttd_by',
+        'ttd_at',
+        'qr_code_path',
+        'hash_sha256',
     ];
 
     public function kategori()
@@ -57,6 +62,11 @@ class Kegiatan extends Model
     public function kabagReviewer()
     {
         return $this->belongsTo(User::class, 'kabag_reviewed_by');
+    }
+
+    public function ttdOleh()
+    {
+        return $this->belongsTo(User::class, 'ttd_by');
     }
 
     public function riwayatTtd()

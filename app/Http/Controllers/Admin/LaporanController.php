@@ -14,10 +14,15 @@ use App\Models\LpjTugas;
 use App\Models\RiwayatTtdDigital;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Carbon\Carbon;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\File;
 use Illuminate\Support\Str;
+use SimpleSoftwareIO\QrCode\Facades\QrCode;
 
 class LaporanController extends Controller
 {
+    private $secretKey = 'SIA-BIROPIM-KALSEL-2026-SEC';
+
     public function index()
     {
         $kategori = KategoriKegiatan::orderBy('nama_kategori', 'asc')->get();
@@ -40,6 +45,53 @@ class LaporanController extends Controller
         return Penandatangan::findOrFail($request->penandatangan_id);
     }
 
+    private function generateLaporanQr(string $jenisLaporan, Penandatangan $penandatangan, array $params = []): array
+    {
+        $hashPayload = $jenisLaporan . '|' . $penandatangan->id . '|' . json_encode($params) . '|' . now()->timestamp . '|' . $this->secretKey;
+        $hash = hash('sha256', $hashPayload);
+
+        $verifyUrl = route('verifikasi-dokumen', $hash);
+
+        $qrDirectory = public_path('uploads/qrcodes/laporan');
+        if (!File::exists($qrDirectory)) {
+            File::makeDirectory($qrDirectory, 0755, true);
+        }
+
+        $qrFileName = 'laporan_' . Str::slug($jenisLaporan) . '_' . time() . '.svg';
+        $qrPath = 'uploads/qrcodes/laporan/' . $qrFileName;
+
+        $qrSvg = QrCode::format('svg')
+            ->size(150)
+            ->margin(2)
+            ->generate($verifyUrl);
+
+        $qrDirectory = public_path('uploads/qrcodes/laporan');
+        if (!File::exists($qrDirectory)) {
+            File::makeDirectory($qrDirectory, 0755, true);
+        }
+        file_put_contents(public_path($qrPath), $qrSvg);
+
+        $nomorDokumen = 'LAP-' . strtoupper(Str::slug($jenisLaporan, '-')) . '/' . Carbon::now()->format('Y');
+
+        RiwayatTtdDigital::create([
+            'dokumen_type' => 'laporan',
+            'dokumen_id' => 0,
+            'penandatangan_id' => $penandatangan->id,
+            'nomor_dokumen' => $nomorDokumen,
+            'hash_sha256' => $hash,
+            'qr_code_path' => $qrPath,
+            'disahkan_by' => Auth::id(),
+            'disahkan_at' => now(),
+            'pin_verified_at' => now(),
+            'ip_address' => request()->ip(),
+        ]);
+
+        return [
+            'qr_svg' => $qrSvg,
+            'hash' => $hash,
+        ];
+    }
+
     // ========== OPERASIONAL ==========
 
     public function cetakSemua(Request $request)
@@ -47,11 +99,15 @@ class LaporanController extends Controller
         $penandatangan = $this->getCommonCetakData($request);
         $kegiatan = Kegiatan::with(['kategori', 'user'])->orderBy('tanggal', 'asc')->get();
 
+        $qr = $this->generateLaporanQr('Seluruh Kegiatan', $penandatangan);
+
         $data = [
             'title' => 'Laporan Seluruh Kegiatan Biro Adpim',
             'kegiatan' => $kegiatan,
             'penandatangan' => $penandatangan,
-            'sub_judul' => 'Arsip Seluruh Data Kegiatan Tercatat'
+            'sub_judul' => 'Arsip Seluruh Data Kegiatan Tercatat',
+            'qr_svg' => $qr['qr_svg'],
+            'hash' => $qr['hash'],
         ];
 
         return $this->generatePdf('laporan.pdf.semua', $data, 'laporan_seluruh_kegiatan.pdf');
@@ -73,11 +129,18 @@ class LaporanController extends Controller
             ->orderBy('tanggal', 'asc')
             ->get();
 
+        $qr = $this->generateLaporanQr('Rentang Tanggal', $penandatangan, [
+            'start' => $request->start_date,
+            'end' => $request->end_date,
+        ]);
+
         $data = [
             'title' => 'Laporan Kegiatan Berdasarkan Rentang Tanggal',
             'kegiatan' => $kegiatan,
             'penandatangan' => $penandatangan,
-            'sub_judul' => 'Periode: ' . $start->translatedFormat('d F Y') . ' s.d. ' . $end->translatedFormat('d F Y')
+            'sub_judul' => 'Periode: ' . $start->translatedFormat('d F Y') . ' s.d. ' . $end->translatedFormat('d F Y'),
+            'qr_svg' => $qr['qr_svg'],
+            'hash' => $qr['hash'],
         ];
 
         return $this->generatePdf('laporan.pdf.tanggal', $data, 'laporan_kegiatan_periode_' . $request->start_date . '_sd_' . $request->end_date . '.pdf');
@@ -94,11 +157,17 @@ class LaporanController extends Controller
             ->orderBy('tanggal', 'asc')
             ->get();
 
+        $qr = $this->generateLaporanQr('Kategori', $penandatangan, [
+            'kategori_id' => $request->kategori_id,
+        ]);
+
         $data = [
             'title' => 'Laporan Kegiatan Berdasarkan Kategori',
             'kegiatan' => $kegiatan,
             'penandatangan' => $penandatangan,
-            'sub_judul' => 'Kategori: ' . $kategori->nama_kategori
+            'sub_judul' => 'Kategori: ' . $kategori->nama_kategori,
+            'qr_svg' => $qr['qr_svg'],
+            'hash' => $qr['hash'],
         ];
 
         return $this->generatePdf('laporan.pdf.kategori', $data, 'laporan_kegiatan_kategori_' . Str::slug($kategori->nama_kategori) . '.pdf');
@@ -115,11 +184,17 @@ class LaporanController extends Controller
             ->orderBy('tanggal', 'asc')
             ->get();
 
+        $qr = $this->generateLaporanQr('Kinerja Peliput', $penandatangan, [
+            'user_id' => $request->user_id,
+        ]);
+
         $data = [
             'title' => 'Laporan Kinerja Staf Peliput',
             'kegiatan' => $kegiatan,
             'penandatangan' => $penandatangan,
-            'sub_judul' => 'Nama Petugas: ' . $user->name . ' (' . ucfirst($user->role) . ')'
+            'sub_judul' => 'Nama Petugas: ' . $user->name . ' (' . ucfirst($user->role) . ')',
+            'qr_svg' => $qr['qr_svg'],
+            'hash' => $qr['hash'],
         ];
 
         return $this->generatePdf('laporan.pdf.peliput', $data, 'laporan_kinerja_' . Str::slug($user->name) . '.pdf');
@@ -132,11 +207,17 @@ class LaporanController extends Controller
 
         $kegiatan = Kegiatan::with(['kategori', 'dokumentasi'])->findOrFail($request->kegiatan_id);
 
+        $qr = $this->generateLaporanQr('Berita Acara', $penandatangan, [
+            'kegiatan_id' => $request->kegiatan_id,
+        ]);
+
         $data = [
             'title' => 'Berita Acara & Dokumentasi Kegiatan',
             'kegiatan' => $kegiatan,
             'penandatangan' => $penandatangan,
-            'sub_judul' => 'Laporan Spesifik ID: ' . $kegiatan->id
+            'sub_judul' => 'Laporan Spesifik ID: ' . $kegiatan->id,
+            'qr_svg' => $qr['qr_svg'],
+            'hash' => $qr['hash'],
         ];
 
         return $this->generatePdf('laporan.pdf.berita-acara', $data, 'berita_acara_giat_' . $kegiatan->id . '.pdf');
@@ -160,12 +241,19 @@ class LaporanController extends Controller
         $sppd = $query->orderBy('tanggal_berangkat', 'asc')->get();
         $totalBiaya = $sppd->sum(fn($item) => $item->totalBiaya());
 
+        $qr = $this->generateLaporanQr('Rekap SPPD', $penandatangan, [
+            'start_date' => $request->start_date ?? null,
+            'end_date' => $request->end_date ?? null,
+        ]);
+
         $data = [
             'title' => 'Laporan Rekapitulasi Surat Perjalanan Dinas (SPPD)',
             'sppd' => $sppd,
             'total_biaya' => $totalBiaya,
             'penandatangan' => $penandatangan,
             'sub_judul' => 'Rekap Data Perjalanan Dinas Biro Adpim',
+            'qr_svg' => $qr['qr_svg'],
+            'hash' => $qr['hash'],
         ];
 
         return $this->generatePdf('laporan.pdf.rekap-sppd', $data, 'rekap_sppd_biro_adpim.pdf');
@@ -186,11 +274,18 @@ class LaporanController extends Controller
 
         $lpj = $query->orderBy('tanggal_lpj', 'asc')->get();
 
+        $qr = $this->generateLaporanQr('Rekap LPJ', $penandatangan, [
+            'start_date' => $request->start_date ?? null,
+            'end_date' => $request->end_date ?? null,
+        ]);
+
         $data = [
             'title' => 'Laporan Rekapitulasi LPJ Tugas',
             'lpj' => $lpj,
             'penandatangan' => $penandatangan,
             'sub_judul' => 'Rekap Laporan Pertanggungjawaban Tugas/Anggaran Biro Adpim',
+            'qr_svg' => $qr['qr_svg'],
+            'hash' => $qr['hash'],
         ];
 
         return $this->generatePdf('laporan.pdf.rekap-lpj', $data, 'rekap_lpj_biro_adpim.pdf');
@@ -215,11 +310,19 @@ class LaporanController extends Controller
 
         $riwayat = $query->orderBy('disahkan_at', 'desc')->get();
 
+        $qr = $this->generateLaporanQr('Riwayat TTD', $penandatangan, [
+            'dokumen_type' => $request->dokumen_type ?? null,
+            'start_date' => $request->start_date ?? null,
+            'end_date' => $request->end_date ?? null,
+        ]);
+
         $data = [
             'title' => 'Laporan Riwayat Tanda Tangan Digital',
             'riwayat' => $riwayat,
             'penandatangan' => $penandatangan,
             'sub_judul' => 'Catatan Pengesahan Dokumen secara Digital Biro Adpim',
+            'qr_svg' => $qr['qr_svg'],
+            'hash' => $qr['hash'],
         ];
 
         return $this->generatePdf('laporan.pdf.riwayat-ttd', $data, 'riwayat_ttd_digital.pdf');
@@ -234,12 +337,16 @@ class LaporanController extends Controller
         $kategori = KategoriKegiatan::withCount('kegiatan')->orderBy('nama_kategori', 'asc')->get();
         $total_kegiatan = Kegiatan::count();
 
+        $qr = $this->generateLaporanQr('Statistik Kategori', $penandatangan);
+
         $data = [
             'title' => 'Laporan Rekapitulasi Jumlah Kegiatan per Kategori',
             'kategori' => $kategori,
             'total_kegiatan' => $total_kegiatan,
             'penandatangan' => $penandatangan,
-            'sub_judul' => 'Statistik Akumulatif Jenis Kegiatan'
+            'sub_judul' => 'Statistik Akumulatif Jenis Kegiatan',
+            'qr_svg' => $qr['qr_svg'],
+            'hash' => $qr['hash'],
         ];
 
         return $this->generatePdf('laporan.pdf.statistik-kategori', $data, 'rekap_statistik_kategori.pdf');
@@ -268,13 +375,19 @@ class LaporanController extends Controller
 
         $total_tahun = Kegiatan::whereYear('tanggal', $tahun)->count();
 
+        $qr = $this->generateLaporanQr('Statistik Bulan', $penandatangan, [
+            'tahun' => $tahun,
+        ]);
+
         $data = [
             'title' => 'Laporan Rekapitulasi Jumlah Kegiatan per Bulan',
             'data_bulan' => $data_bulan,
             'total_tahun' => $total_tahun,
             'tahun' => $tahun,
             'penandatangan' => $penandatangan,
-            'sub_judul' => 'Tren Kegiatan Tahun Analisis: ' . $tahun
+            'sub_judul' => 'Tren Kegiatan Tahun Analisis: ' . $tahun,
+            'qr_svg' => $qr['qr_svg'],
+            'hash' => $qr['hash'],
         ];
 
         return $this->generatePdf('laporan.pdf.statistik-bulan', $data, 'rekap_statistik_bulan_' . $tahun . '.pdf');

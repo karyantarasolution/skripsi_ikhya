@@ -94,6 +94,19 @@
         .ttd-space {
             height: 80px; /* Ruang untuk tanda tangan basah/stempel */
         }
+        .ttd-qr {
+            text-align: center;
+            margin-top: 5px;
+        }
+        .ttd-qr img {
+            width: 100px;
+            height: 100px;
+        }
+        .ttd-qr p {
+            font-size: 8px;
+            color: #666;
+            margin: 2px 0 0 0;
+        }
         .clearfix::after {
             content: "";
             clear: both;
@@ -128,6 +141,12 @@
             <div class="ttd-space"></div>
            <p style="text-decoration: underline; font-weight: bold;">{{ $penandatangan->nama_pejabat ?? $penandatangan->nama }}</p>
             <p>NIP. {{ $penandatangan->nip }}</p>
+            @if(!empty($qr_svg) && !empty($hash))
+                <div class="ttd-qr">
+                    <img src="data:image/svg+xml;base64,{{ base64_encode($qr_svg) }}" alt="QR Code Verifikasi">
+                    <p>Verifikasi: {{ substr($hash, 0, 16) }}...</p>
+                </div>
+            @endif
         </div>
     </div>
 

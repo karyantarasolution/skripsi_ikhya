@@ -71,14 +71,16 @@ class TtdDigitalController extends Controller
             File::makeDirectory($qrDirectory, 0755, true);
         }
 
-        $qrFileName = 'ttd_' . $tipe . '_' . $id . '_' . time() . '.png';
+        $qrFileName = 'ttd_' . $tipe . '_' . $id . '_' . time() . '.svg';
         $qrPath = 'uploads/qrcodes/ttd/' . $qrFileName;
         $verifyUrl = route('verifikasi-dokumen', $hash);
 
-        QrCode::format('png')
+        $qrSvg = QrCode::format('svg')
             ->size(300)
             ->margin(2)
-            ->generate($verifyUrl, public_path($qrPath));
+            ->generate($verifyUrl);
+
+        file_put_contents(public_path($qrPath), $qrSvg);
 
         $riwayat = RiwayatTtdDigital::create([
             'dokumen_type' => $tipe,
@@ -134,6 +136,7 @@ class TtdDigitalController extends Controller
         return match($tipe) {
             'sppd' => $dokumen->ttd_status === 'ditandatangani',
             'lpj_tugas' => $dokumen->ttd_status === 'ditandatangani',
+            'surat_tugas' => $dokumen->ttd_status === 'ditandatangani',
             default => false,
         };
     }
@@ -167,6 +170,7 @@ class TtdDigitalController extends Controller
         match($tipe) {
             'sppd' => $dokumen->update($updateData),
             'lpj_tugas' => $dokumen->update($updateData),
+            'surat_tugas' => $dokumen->update($updateData),
             default => null,
         };
     }

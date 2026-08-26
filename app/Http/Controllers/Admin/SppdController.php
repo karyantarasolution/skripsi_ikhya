@@ -16,6 +16,7 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use App\Models\DocumentApproval;
 use App\Services\NotificationService;
+use Illuminate\Support\Facades\File;
 
 class SppdController extends Controller
 {
@@ -251,10 +252,23 @@ class SppdController extends Controller
 
         $lamaHari = Carbon::parse($sppd->tanggal_berangkat)->diffInDays(Carbon::parse($sppd->tanggal_kembali)) + 1;
 
+        $qrSvg = null;
+        $hash = null;
+
+        if ($sppd->ttd_status === 'ditandatangani' && $sppd->qr_code_path && $sppd->hash_sha256) {
+            $qrFullPath = public_path($sppd->qr_code_path);
+            if (File::exists($qrFullPath)) {
+                $qrSvg = file_get_contents($qrFullPath);
+                $hash = $sppd->hash_sha256;
+            }
+        }
+
         $pdf = Pdf::loadView('dokumen.sppd.pdf', [
             'sppd' => $sppd,
             'penandatangan' => $penandatangan,
             'lamaHari' => $lamaHari,
+            'qr_svg' => $qrSvg,
+            'hash' => $hash,
         ]);
 
         return $pdf->setPaper('a4', 'portrait')->stream('sppd_'.$sppd->id.'.pdf');

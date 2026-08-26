@@ -86,6 +86,12 @@
             <div class="ttd-space"></div>
             <p style="text-decoration: underline; font-weight: bold;">{{ $penandatangan->nama_pejabat }}</p>
             <p>NIP. {{ $penandatangan->nip }}</p>
+            @if(!empty($qr_svg) && !empty($hash))
+                <div style="text-align: center; margin-top: 5px;">
+                    <img src="data:image/svg+xml;base64,{{ base64_encode($qr_svg) }}" alt="QR Code Verifikasi" style="width: 100px; height: 100px;">
+                    <p style="font-size: 8px; color: #666; margin: 2px 0 0 0;">Verifikasi: {{ substr($hash, 0, 16) }}...</p>
+                </div>
+            @endif
         </div>
     </div>
 </body>

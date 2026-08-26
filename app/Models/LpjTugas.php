@@ -18,6 +18,10 @@ class LpjTugas extends Model
         'penanggung_jawab_nama',
         'penanggung_jawab_jabatan',
         'tanggal_lpj',
+        'status',
+        'kabag_reviewed_by',
+        'kabag_reviewed_at',
+        'kabag_catatan',
         'ttd_status',
         'ttd_by',
         'ttd_at',
@@ -48,6 +52,11 @@ class LpjTugas extends Model
     public function ttdOleh()
     {
         return $this->belongsTo(User::class, 'ttd_by');
+    }
+
+    public function kabagReviewer()
+    {
+        return $this->belongsTo(User::class, 'kabag_reviewed_by');
     }
 
     public function riwayatTtd()

@@ -7,12 +7,15 @@ use App\Models\Kegiatan;
 use App\Models\LpjTugas;
 use App\Models\LpjTugasBukti;
 use App\Models\Penandatangan;
+use App\Models\DocumentApproval;
 use App\Support\NomorSurat;
+use App\Services\NotificationService;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\File;
+use Illuminate\Support\Facades\Hash;
 
 class LpjTugasController extends Controller
 {
@@ -76,6 +79,7 @@ class LpjTugasController extends Controller
             'penanggung_jawab_nama' => $request->penanggung_jawab_nama,
             'penanggung_jawab_jabatan' => $request->penanggung_jawab_jabatan,
             'tanggal_lpj' => $request->tanggal_lpj,
+            'status' => 'draf',
         ]);
 
         $tahun = Carbon::parse($lpj->tanggal_lpj)->format('Y');
@@ -187,12 +191,130 @@ class LpjTugasController extends Controller
             return back()->with('error', 'Data penandatangan aktif belum diatur. Hubungi admin.');
         }
 
+        $qrSvg = null;
+        $hash = null;
+
+        if ($lpj->ttd_status === 'ditandatangani' && $lpj->qr_code_path && $lpj->hash_sha256) {
+            $qrFullPath = public_path($lpj->qr_code_path);
+            if (File::exists($qrFullPath)) {
+                $qrSvg = file_get_contents($qrFullPath);
+                $hash = $lpj->hash_sha256;
+            }
+        }
+
         $pdf = Pdf::loadView('dokumen.lpj-tugas.pdf', [
             'lpj' => $lpj,
             'penandatangan' => $penandatangan,
+            'qr_svg' => $qrSvg,
+            'hash' => $hash,
         ]);
 
         return $pdf->setPaper('a4', 'portrait')->stream('lpj_tugas_'.$lpj->id.'.pdf');
+    }
+
+    // ========== WORKFLOW METHODS ==========
+
+    public function ajukan($id)
+    {
+        $lpj = LpjTugas::findOrFail($id);
+
+        if ($lpj->user_id !== Auth::id() && Auth::user()->role !== 'admin') {
+            abort(403);
+        }
+
+        $lpj->update(['status' => 'diajukan']);
+
+        NotificationService::sendToRole('pimpinan', 'lpj.diajukan', 'LPJ Baru', Auth::user()->name . ' mengajukan LPJ ' . ($lpj->no_lpj ?? 'baru'), route('dokumen.lpj-tugas.index'));
+
+        return redirect()->route('dokumen.lpj-tugas.index')->with('success', 'LPJ diajukan untuk persetujuan.');
+    }
+
+    public function reviewKabag(Request $request, $id)
+    {
+        $request->validate([
+            'pin' => 'required|string',
+            'kabag_catatan' => 'nullable|string',
+        ]);
+
+        if (!Hash::check($request->pin, Auth::user()->password)) {
+            return back()->with('error', 'PIN/Password salah. Review dibatalkan.');
+        }
+
+        $lpj = LpjTugas::findOrFail($id);
+
+        if ($lpj->status !== 'diajukan') {
+            return back()->with('error', 'LPJ belum dalam status diajukan.');
+        }
+
+        $lpj->update([
+            'status' => 'review_kabag',
+            'kabag_reviewed_by' => Auth::id(),
+            'kabag_reviewed_at' => now(),
+            'kabag_catatan' => $request->kabag_catatan,
+        ]);
+
+        DocumentApproval::create([
+            'dokumen_type' => 'lpj_tugas',
+            'dokumen_id' => $id,
+            'tahapan' => 'review_kabag',
+            'aksi' => 'approve',
+            'user_id' => Auth::id(),
+            'catatan' => $request->kabag_catatan,
+        ]);
+
+        NotificationService::send($lpj->user, 'lpj.reviewed', 'LPJ Telah Direview', 'LPJ ' . ($lpj->no_lpj ?? '') . ' telah direview oleh Kabag.', route('dokumen.lpj-tugas.index'));
+
+        return redirect()->route('dokumen.lpj-tugas.index')->with('success', 'LPJ telah direview oleh Kabag dan siap untuk TTD Karo Adpim.');
+    }
+
+    public function returnToStaf(Request $request, $id)
+    {
+        $request->validate([
+            'catatan' => 'required|string',
+        ]);
+
+        $lpj = LpjTugas::findOrFail($id);
+
+        $lpj->update([
+            'status' => 'draf',
+            'kabag_catatan' => $request->catatan,
+        ]);
+
+        DocumentApproval::create([
+            'dokumen_type' => 'lpj_tugas',
+            'dokumen_id' => $id,
+            'tahapan' => 'review_kabag',
+            'aksi' => 'return',
+            'user_id' => Auth::id(),
+            'catatan' => $request->catatan,
+        ]);
+
+        NotificationService::send($lpj->user, 'lpj.returned', 'LPJ Dikembalikan', 'LPJ ' . ($lpj->no_lpj ?? '') . ' dikembalikan untuk perbaikan. Alasan: ' . $request->catatan, route('dokumen.lpj-tugas.index'));
+
+        return redirect()->route('dokumen.lpj-tugas.index')->with('success', 'LPJ dikembalikan ke staf untuk perbaikan.');
+    }
+
+    public function tolak(Request $request, $id)
+    {
+        if (Auth::user()->role !== 'admin') {
+            abort(403);
+        }
+
+        $request->validate(['catatan' => 'required|string']);
+
+        $lpj = LpjTugas::findOrFail($id);
+        $lpj->update(['status' => 'ditolak', 'kabag_catatan' => $request->catatan]);
+
+        DocumentApproval::create([
+            'dokumen_type' => 'lpj_tugas',
+            'dokumen_id' => $id,
+            'tahapan' => 'review_kabag',
+            'aksi' => 'reject',
+            'user_id' => Auth::id(),
+            'catatan' => $request->catatan,
+        ]);
+
+        return redirect()->route('dokumen.lpj-tugas.index')->with('success', 'LPJ ditolak.');
     }
 
     private function simpanBukti(LpjTugas $lpj, Request $request): void

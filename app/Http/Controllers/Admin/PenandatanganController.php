@@ -24,7 +24,7 @@ class PenandatanganController extends Controller
             File::makeDirectory($qrDirectory, 0755, true);
         }
 
-        $qrFileName = 'qr_' . $pejabat->id . '_' . time() . '.png';
+        $qrFileName = 'qr_' . $pejabat->id . '_' . time() . '.svg';
         $qrPath = 'uploads/qrcodes/' . $qrFileName;
 
         $data = json_encode([
@@ -34,10 +34,12 @@ class PenandatanganController extends Controller
             'jabatan' => $pejabat->jabatan,
         ]);
 
-        QrCode::format('png')
+        $qrSvg = QrCode::format('svg')
             ->size(300)
             ->margin(2)
-            ->generate($data, public_path($qrPath));
+            ->generate($data);
+
+        file_put_contents(public_path($qrPath), $qrSvg);
 
         return $qrPath;
     }

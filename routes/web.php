@@ -95,6 +95,7 @@ Route::middleware('auth')->group(function () {
     Route::middleware('role:admin,staf')->prefix('dokumen')->name('dokumen.')->group(function () {
         Route::get('/surat-tugas', [SuratTugasController::class, 'index'])->name('surat-tugas.index');
         Route::get('/surat-tugas/{kegiatan}/cetak', [SuratTugasController::class, 'cetak'])->name('surat-tugas.cetak');
+        Route::post('/surat-tugas/{kegiatan}/ajukan', [SuratTugasController::class, 'ajukan'])->name('surat-tugas.ajukan');
 
         Route::get('/perjalanan-dinas', [SppdController::class, 'index'])->name('sppd.index');
         Route::get('/perjalanan-dinas/create', [SppdController::class, 'create'])->name('sppd.create');
@@ -116,11 +117,18 @@ Route::middleware('auth')->group(function () {
         Route::post('/lpj-tugas/{lpjTugas}/bukti', [LpjTugasController::class, 'tambahBukti'])->name('lpj-tugas.bukti.store');
         Route::delete('/lpj-tugas/{lpjTugas}', [LpjTugasController::class, 'destroy'])->name('lpj-tugas.destroy');
         Route::get('/lpj-tugas/{lpjTugas}/cetak', [LpjTugasController::class, 'cetak'])->name('lpj-tugas.cetak');
+        Route::post('/lpj-tugas/{lpjTugas}/ajukan', [LpjTugasController::class, 'ajukan'])->name('lpj-tugas.ajukan');
     });
 
     Route::middleware('role:admin,pimpinan')->prefix('dokumen-admin')->name('dokumen-admin.')->group(function () {
         Route::post('/perjalanan-dinas/{sppd}/review-kabag', [SppdController::class, 'reviewKabag'])->name('sppd.review-kabag');
         Route::post('/perjalanan-dinas/{sppd}/return-staf', [SppdController::class, 'returnToStaf'])->name('sppd.return-staf');
+        Route::post('/lpj-tugas/{lpjTugas}/review-kabag', [LpjTugasController::class, 'reviewKabag'])->name('lpj-tugas.review-kabag');
+        Route::post('/lpj-tugas/{lpjTugas}/return-staf', [LpjTugasController::class, 'returnToStaf'])->name('lpj-tugas.return-staf');
+        Route::post('/lpj-tugas/{lpjTugas}/tolak', [LpjTugasController::class, 'tolak'])->name('lpj-tugas.tolak');
+        Route::post('/surat-tugas/{kegiatan}/review-kabag', [SuratTugasController::class, 'reviewKabag'])->name('surat-tugas.review-kabag');
+        Route::post('/surat-tugas/{kegiatan}/return-staf', [SuratTugasController::class, 'returnToStaf'])->name('surat-tugas.return-staf');
+        Route::post('/surat-tugas/{kegiatan}/tolak', [SuratTugasController::class, 'tolak'])->name('surat-tugas.tolak');
     });
 
     Route::middleware('role:pimpinan')->prefix('persetujuan')->name('persetujuan.')->group(function () {
