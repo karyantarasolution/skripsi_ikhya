@@ -76,4 +76,19 @@ class User extends Authenticatable
     {
         return $this->hasMany(LpjTugas::class, 'user_id');
     }
+
+    public function riwayatTtd()
+    {
+        return $this->hasMany(RiwayatTtdDigital::class, 'disahkan_by');
+    }
+
+    public function notifications()
+    {
+        return $this->morphMany(\Illuminate\Notifications\DatabaseNotification::class, 'notifiable');
+    }
+
+    public function unreadNotifications()
+    {
+        return $this->notifications()->whereNull('read_at');
+    }
 }

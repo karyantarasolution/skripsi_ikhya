@@ -9,6 +9,9 @@ use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\File;
+use Illuminate\Support\Facades\Hash;
+use App\Models\DocumentApproval;
+use App\Services\NotificationService;
 
 class KegiatanController extends Controller
 {
@@ -147,6 +150,9 @@ class KegiatanController extends Controller
     {
         $kegiatan = Kegiatan::findOrFail($id);
         $kegiatan->update(['status' => 'diajukan']);
+
+        NotificationService::sendToRole('pimpinan', 'kegiatan.diajukan', 'Kegiatan Baru', Auth::user()->name . ' mengajukan kegiatan "' . $kegiatan->judul_kegiatan . '"', route('peliputan.kegiatan.index'));
+
         return redirect()->route('peliputan.kegiatan.index')->with('success', 'Kegiatan diajukan untuk persetujuan.');
     }
 
@@ -211,5 +217,70 @@ class KegiatanController extends Controller
         ]);
 
         return redirect()->route('peliputan.kegiatan.index')->with('success', 'LPJ berhasil diunggah.');
+    }
+
+    public function reviewKabag(Request $request, $id)
+    {
+        $request->validate([
+            'pin' => 'required|string',
+            'kabag_catatan' => 'nullable|string',
+        ]);
+
+        if (!Hash::check($request->pin, Auth::user()->password)) {
+            return back()->with('error', 'PIN/Password salah. Review dibatalkan.');
+        }
+
+        $kegiatan = Kegiatan::findOrFail($id);
+
+        if ($kegiatan->status !== 'diajukan') {
+            return back()->with('error', 'Kegiatan belum dalam status diajukan.');
+        }
+
+        $kegiatan->update([
+            'status' => 'review_kabag',
+            'kabag_reviewed_by' => Auth::id(),
+            'kabag_reviewed_at' => now(),
+            'kabag_catatan' => $request->kabag_catatan,
+        ]);
+
+        DocumentApproval::create([
+            'dokumen_type' => 'kegiatan',
+            'dokumen_id' => $id,
+            'tahapan' => 'review_kabag',
+            'aksi' => 'approve',
+            'user_id' => Auth::id(),
+            'catatan' => $request->kabag_catatan,
+        ]);
+
+        NotificationService::send($kegiatan->user, 'kegiatan.reviewed', 'Kegiatan Telah Direview', 'Kegiatan "' . $kegiatan->judul_kegiatan . '" telah direview oleh Kabag.', route('peliputan.kegiatan.index'));
+
+        return redirect()->route('peliputan.kegiatan.index')->with('success', 'Kegiatan telah direview oleh Kabag dan siap untuk TTD Karo Adpim.');
+    }
+
+    public function returnToStaf(Request $request, $id)
+    {
+        $request->validate([
+            'catatan_penolakan' => 'required|string',
+        ]);
+
+        $kegiatan = Kegiatan::findOrFail($id);
+
+        $kegiatan->update([
+            'status' => 'draf',
+            'kabag_catatan' => $request->catatan_penolakan,
+        ]);
+
+        DocumentApproval::create([
+            'dokumen_type' => 'kegiatan',
+            'dokumen_id' => $id,
+            'tahapan' => 'review_kabag',
+            'aksi' => 'return',
+            'user_id' => Auth::id(),
+            'catatan' => $request->catatan_penolakan,
+        ]);
+
+        NotificationService::send($kegiatan->user, 'kegiatan.returned', 'Kegiatan Dikembalikan', 'Kegiatan "' . $kegiatan->judul_kegiatan . '" dikembalikan untuk perbaikan. Alasan: ' . $request->catatan_penolakan, route('peliputan.kegiatan.index'));
+
+        return redirect()->route('peliputan.kegiatan.index')->with('success', 'Kegiatan dikembalikan ke staf untuk perbaikan.');
     }
 }

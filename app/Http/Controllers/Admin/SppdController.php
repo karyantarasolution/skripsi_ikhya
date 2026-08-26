@@ -13,6 +13,9 @@ use Barryvdh\DomPDF\Facade\Pdf;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Hash;
+use App\Models\DocumentApproval;
+use App\Services\NotificationService;
 
 class SppdController extends Controller
 {
@@ -132,6 +135,8 @@ class SppdController extends Controller
 
         $sppd->update(['status' => 'diajukan']);
 
+        NotificationService::sendToRole('pimpinan', 'sppd.diajukan', 'SPPD Baru', Auth::user()->name . ' mengajukan SPPD ' . ($sppd->no_surat ?? 'baru'), route('dokumen.sppd.index'));
+
         return redirect()->route('dokumen.sppd.index')->with('success', 'SPPD diajukan untuk persetujuan.');
     }
 
@@ -158,7 +163,81 @@ class SppdController extends Controller
         $sppd = SuratPerjalananDinas::findOrFail($id);
         $sppd->update(['status' => 'ditolak', 'catatan' => $request->catatan]);
 
+        DocumentApproval::create([
+            'dokumen_type' => 'sppd',
+            'dokumen_id' => $id,
+            'tahapan' => 'review_kabag',
+            'aksi' => 'reject',
+            'user_id' => Auth::id(),
+            'catatan' => $request->catatan,
+        ]);
+
         return redirect()->route('dokumen.sppd.index')->with('success', 'SPPD ditolak.');
+    }
+
+    public function reviewKabag(Request $request, $id)
+    {
+        $request->validate([
+            'pin' => 'required|string',
+            'kabag_catatan' => 'nullable|string',
+        ]);
+
+        if (!Hash::check($request->pin, Auth::user()->password)) {
+            return back()->with('error', 'PIN/Password salah. Review dibatalkan.');
+        }
+
+        $sppd = SuratPerjalananDinas::findOrFail($id);
+
+        if ($sppd->status !== 'diajukan') {
+            return back()->with('error', 'SPPD belum dalam status diajukan.');
+        }
+
+        $sppd->update([
+            'status' => 'review_kabag',
+            'kabag_reviewed_by' => Auth::id(),
+            'kabag_reviewed_at' => now(),
+            'kabag_catatan' => $request->kabag_catatan,
+        ]);
+
+        DocumentApproval::create([
+            'dokumen_type' => 'sppd',
+            'dokumen_id' => $id,
+            'tahapan' => 'review_kabag',
+            'aksi' => 'approve',
+            'user_id' => Auth::id(),
+            'catatan' => $request->kabag_catatan,
+        ]);
+
+        NotificationService::send($sppd->user, 'sppd.reviewed', 'SPPD Telah Direview', 'SPPD ' . ($sppd->no_surat ?? '') . ' telah direview oleh Kabag.', route('dokumen.sppd.index'));
+
+        return redirect()->route('dokumen.sppd.index')->with('success', 'SPPD telah direview oleh Kabag dan siap untuk TTD Karo Adpim.');
+    }
+
+    public function returnToStaf(Request $request, $id)
+    {
+        $request->validate([
+            'catatan' => 'required|string',
+        ]);
+
+        $sppd = SuratPerjalananDinas::findOrFail($id);
+
+        $sppd->update([
+            'status' => 'draf',
+            'kabag_catatan' => $request->catatan,
+        ]);
+
+        DocumentApproval::create([
+            'dokumen_type' => 'sppd',
+            'dokumen_id' => $id,
+            'tahapan' => 'review_kabag',
+            'aksi' => 'return',
+            'user_id' => Auth::id(),
+            'catatan' => $request->catatan,
+        ]);
+
+        NotificationService::send($sppd->user, 'sppd.returned', 'SPPD Dikembalikan', 'SPPD ' . ($sppd->no_surat ?? '') . ' dikembalikan untuk perbaikan. Alasan: ' . $request->catatan, route('dokumen.sppd.index'));
+
+        return redirect()->route('dokumen.sppd.index')->with('success', 'SPPD dikembalikan ke staf untuk perbaikan.');
     }
 
     public function cetak($id)

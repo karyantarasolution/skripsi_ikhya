@@ -24,6 +24,14 @@ class SuratPerjalananDinas extends Model
         'keterangan',
         'status',
         'catatan',
+        'ttd_status',
+        'ttd_by',
+        'ttd_at',
+        'qr_code_path',
+        'hash_sha256',
+        'kabag_reviewed_by',
+        'kabag_reviewed_at',
+        'kabag_catatan',
     ];
 
     public function user()
@@ -49,5 +57,26 @@ class SuratPerjalananDinas extends Model
     public function totalBiaya()
     {
         return $this->biaya->sum('total');
+    }
+
+    public function penandatangan()
+    {
+        return $this->belongsTo(Penandatangan::class, 'penandatangan_id');
+    }
+
+    public function ttdOleh()
+    {
+        return $this->belongsTo(User::class, 'ttd_by');
+    }
+
+    public function kabagReviewer()
+    {
+        return $this->belongsTo(User::class, 'kabag_reviewed_by');
+    }
+
+    public function riwayatTtd()
+    {
+        return $this->hasMany(RiwayatTtdDigital::class, 'dokumen_id')
+            ->where('dokumen_type', 'sppd');
     }
 }

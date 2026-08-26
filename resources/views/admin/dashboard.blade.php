@@ -6,7 +6,7 @@
 
     <div class="py-8">
         <div class="max-w-7xl mx-auto sm:px-6 lg:px-8 space-y-6">
-            
+
             <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                 <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6 flex items-center gap-4">
                     <div class="p-4 bg-indigo-50 text-indigo-600 rounded-lg"><svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg></div>
@@ -54,6 +54,26 @@
                 <div class="bg-indigo-50 border border-indigo-200 rounded-xl p-4 text-center">
                     <p class="text-xs font-bold text-indigo-600 uppercase tracking-wider">Total Penugasan</p>
                     <p class="text-3xl font-black text-indigo-700">{{ $total_penugasan ?? 0 }}</p>
+                </div>
+            </div>
+
+            <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+                    <div class="px-6 py-4 border-b border-gray-100 bg-gray-50">
+                        <h3 class="text-sm font-bold text-gray-900">Kegiatan per Bulan (6 Bulan Terakhir)</h3>
+                    </div>
+                    <div class="p-6">
+                        <canvas id="chartBulan" height="200"></canvas>
+                    </div>
+                </div>
+                <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+                    <div class="px-6 py-4 border-b border-gray-100 bg-gray-50">
+                        <h3 class="text-sm font-bold text-gray-900">Kegiatan per Kategori</h3>
+                    </div>
+                    <div class="p-6">
+                        <canvas id="chartKategori" height="200"></canvas>
+                    </div>
                 </div>
             </div>
 
@@ -138,4 +158,55 @@
 
         </div>
     </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const bulanLabels = @json($chart_bulan);
+            const bulanData = @json($chart_jumlah);
+
+            new Chart(document.getElementById('chartBulan'), {
+                type: 'bar',
+                data: {
+                    labels: bulanLabels,
+                    datasets: [{
+                        label: 'Jumlah Kegiatan',
+                        data: bulanData,
+                        backgroundColor: 'rgba(99, 102, 241, 0.8)',
+                        borderColor: 'rgb(99, 102, 241)',
+                        borderWidth: 1,
+                        borderRadius: 6,
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: { legend: { display: false } },
+                    scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } }
+                }
+            });
+
+            const kategoriData = @json($chart_kategori);
+            const kategoriLabels = kategoriData.map(d => d.kategori?.nama_kategori ?? 'Tanpa Kategori');
+            const kategoriValues = kategoriData.map(d => d.total);
+            const kategoriColors = kategoriData.map(d => d.kategori?.warna_label ?? '#6B7280');
+
+            new Chart(document.getElementById('chartKategori'), {
+                type: 'doughnut',
+                data: {
+                    labels: kategoriLabels,
+                    datasets: [{
+                        data: kategoriValues,
+                        backgroundColor: kategoriColors,
+                        borderWidth: 2,
+                        borderColor: '#fff',
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: { position: 'bottom', labels: { padding: 16, usePointStyle: true } }
+                    }
+                }
+            });
+        });
+    </script>
 </x-app-layout>

@@ -24,6 +24,9 @@ class Kegiatan extends Model
         'catatan_penolakan',
         'approved_by',
         'approved_at',
+        'kabag_reviewed_by',
+        'kabag_reviewed_at',
+        'kabag_catatan',
     ];
 
     public function kategori()
@@ -49,5 +52,22 @@ class Kegiatan extends Model
     public function approval()
     {
         return $this->belongsTo(User::class, 'approved_by');
+    }
+
+    public function kabagReviewer()
+    {
+        return $this->belongsTo(User::class, 'kabag_reviewed_by');
+    }
+
+    public function riwayatTtd()
+    {
+        return $this->hasMany(RiwayatTtdDigital::class, 'dokumen_id')
+            ->where('dokumen_type', 'kegiatan');
+    }
+
+    public function approvals()
+    {
+        return $this->hasMany(DocumentApproval::class, 'dokumen_id')
+            ->where('dokumen_type', 'kegiatan');
     }
 }

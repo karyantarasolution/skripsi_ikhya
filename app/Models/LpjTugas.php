@@ -18,6 +18,11 @@ class LpjTugas extends Model
         'penanggung_jawab_nama',
         'penanggung_jawab_jabatan',
         'tanggal_lpj',
+        'ttd_status',
+        'ttd_by',
+        'ttd_at',
+        'qr_code_path',
+        'hash_sha256',
     ];
 
     public function user()
@@ -38,5 +43,16 @@ class LpjTugas extends Model
     public function bukti()
     {
         return $this->hasMany(LpjTugasBukti::class, 'lpj_tugas_id');
+    }
+
+    public function ttdOleh()
+    {
+        return $this->belongsTo(User::class, 'ttd_by');
+    }
+
+    public function riwayatTtd()
+    {
+        return $this->hasMany(RiwayatTtdDigital::class, 'dokumen_id')
+            ->where('dokumen_type', 'lpj_tugas');
     }
 }

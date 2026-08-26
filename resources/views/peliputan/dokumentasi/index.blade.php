@@ -51,6 +51,12 @@
                 <div class="w-full md:w-auto text-center md:text-right bg-gray-50 px-6 py-4 rounded-xl border border-gray-200">
                     <p class="text-xs text-gray-500 font-bold uppercase tracking-widest mb-1">Total File Tersimpan</p>
                     <p class="text-4xl font-black text-gray-900">{{ $kegiatan->dokumentasi->count() }}</p>
+                    @if($kegiatan->dokumentasi->count() > 0)
+                        <a href="{{ route('peliputan.dokumentasi.download-zip', $kegiatan->id) }}" class="mt-3 inline-flex items-center px-4 py-2 bg-emerald-600 text-white text-sm font-bold rounded-lg hover:bg-emerald-700 transition-colors shadow-sm">
+                            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
+                            Download Album (ZIP)
+                        </a>
+                    @endif
                 </div>
             </div>
 
@@ -105,6 +111,18 @@
                             <p class="text-[10px] text-gray-500 mt-0.5">Tipe: {{ $doc->tipe_file }}</p>
                             @if($doc->user)
                                 <p class="text-[10px] text-gray-400 mt-0.5">Oleh: {{ $doc->user->name }}</p>
+                            @endif
+                            @if($doc->foto_taken_at)
+                                <p class="text-[10px] text-blue-500 mt-1 flex items-center gap-1">
+                                    <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                                    {{ $doc->foto_taken_at->format('d M Y H:i') }}
+                                </p>
+                            @endif
+                            @if($doc->gps_latitude && $doc->gps_longitude)
+                                <p class="text-[10px] text-green-600 mt-0.5 flex items-center gap-1" title="Lat: {{ $doc->gps_latitude }}, Lng: {{ $doc->gps_longitude }}">
+                                    <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"></path></svg>
+                                    {{ number_format($doc->gps_latitude, 4) }}, {{ number_format($doc->gps_longitude, 4) }}
+                                </p>
                             @endif
                         </div>
 

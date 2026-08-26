@@ -4,7 +4,7 @@ use App\Http\Controllers\ProfileController;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Auth;
 use App\Http\Controllers\Admin\KategoriKegiatanController;
-use App\Http\Controllers\Admin\UserController; 
+use App\Http\Controllers\Admin\UserController;
 use App\Http\Controllers\Admin\PenandatanganController;
 use App\Http\Controllers\Admin\KegiatanController;
 use App\Http\Controllers\Admin\DokumentasiController;
@@ -14,6 +14,7 @@ use App\Http\Controllers\Admin\LaporanController;
 use App\Http\Controllers\Admin\SuratTugasController;
 use App\Http\Controllers\Admin\SppdController;
 use App\Http\Controllers\Admin\LpjTugasController;
+use App\Http\Controllers\Admin\TtdDigitalController;
 
 Route::get('/', function () {
     return view('welcome');
@@ -21,7 +22,7 @@ Route::get('/', function () {
 
 Route::get('/dashboard', function () {
     $role = Auth::user()->role;
-    
+
     if ($role === 'admin') {
         return redirect()->route('admin.dashboard');
     } elseif ($role === 'staf') {
@@ -29,9 +30,11 @@ Route::get('/dashboard', function () {
     } elseif ($role === 'pimpinan') {
         return redirect()->route('pimpinan.dashboard');
     }
-    
+
     abort(403);
 })->middleware(['auth', 'verified'])->name('dashboard');
+
+Route::get('/verifikasi/{hash}', [TtdDigitalController::class, 'verifikasi'])->name('verifikasi-dokumen');
 
 Route::middleware('auth')->group(function () {
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
@@ -40,9 +43,9 @@ Route::middleware('auth')->group(function () {
 
     Route::middleware('role:admin')->prefix('admin')->name('admin.')->group(function () {
         Route::get('/dashboard', [DashboardController::class, 'admin'])->name('dashboard');
-        
+
         Route::resource('kategori', KategoriKegiatanController::class)->except(['create', 'show', 'edit']);
-        Route::resource('user', UserController::class)->except(['create', 'show', 'edit']); 
+        Route::resource('user', UserController::class)->except(['create', 'show', 'edit']);
         Route::resource('penandatangan', PenandatanganController::class)->except(['create', 'show', 'edit']);
 
         Route::prefix('penugasan')->name('penugasan.')->group(function () {
@@ -53,6 +56,11 @@ Route::middleware('auth')->group(function () {
             Route::put('/{penugasan}', [PenugasanController::class, 'update'])->name('update');
             Route::delete('/{penugasan}', [PenugasanController::class, 'destroy'])->name('destroy');
             Route::get('/by-staff', [PenugasanController::class, 'byStaff'])->name('by-staff');
+        });
+
+        Route::prefix('ttd-digital')->name('ttd-digital.')->group(function () {
+            Route::get('/riwayat', [TtdDigitalController::class, 'riwayatTtd'])->name('riwayat');
+            Route::post('/proses/{tipe}/{id}', [TtdDigitalController::class, 'prosesTtd'])->name('proses');
         });
     });
 
@@ -66,7 +74,7 @@ Route::middleware('auth')->group(function () {
 
     Route::middleware('role:admin,staf')->prefix('peliputan')->name('peliputan.')->group(function () {
         Route::resource('kegiatan', KegiatanController::class);
-        
+
         Route::post('kegiatan/{kegiatan}/ajukan', [KegiatanController::class, 'ajukan'])->name('kegiatan.ajukan');
         Route::post('kegiatan/{kegiatan}/mulai', [KegiatanController::class, 'mulaiPelaksanaan'])->name('kegiatan.mulai');
         Route::post('kegiatan/{kegiatan}/selesai', [KegiatanController::class, 'selesai'])->name('kegiatan.selesai');
@@ -75,7 +83,13 @@ Route::middleware('auth')->group(function () {
         Route::get('kegiatan/{kegiatan}/dokumentasi', [DokumentasiController::class, 'index'])->name('dokumentasi.index');
         Route::post('kegiatan/{kegiatan}/dokumentasi', [DokumentasiController::class, 'store'])->name('dokumentasi.store');
         Route::delete('dokumentasi/{dokumentasi}', [DokumentasiController::class, 'destroy'])->name('dokumentasi.destroy');
+        Route::get('kegiatan/{kegiatan}/dokumentasi/download-zip', [DokumentasiController::class, 'downloadAlbum'])->name('dokumentasi.download-zip');
         Route::get('arsip-global', [DokumentasiController::class, 'arsipGlobal'])->name('arsip.global');
+    });
+
+    Route::middleware('role:admin,pimpinan')->prefix('peliputan-admin')->name('peliputan-admin.')->group(function () {
+        Route::post('kegiatan/{kegiatan}/review-kabag', [KegiatanController::class, 'reviewKabag'])->name('kegiatan.review-kabag');
+        Route::post('kegiatan/{kegiatan}/return-staf', [KegiatanController::class, 'returnToStaf'])->name('kegiatan.return-staf');
     });
 
     Route::middleware('role:admin,staf')->prefix('dokumen')->name('dokumen.')->group(function () {
@@ -104,6 +118,11 @@ Route::middleware('auth')->group(function () {
         Route::get('/lpj-tugas/{lpjTugas}/cetak', [LpjTugasController::class, 'cetak'])->name('lpj-tugas.cetak');
     });
 
+    Route::middleware('role:admin,pimpinan')->prefix('dokumen-admin')->name('dokumen-admin.')->group(function () {
+        Route::post('/perjalanan-dinas/{sppd}/review-kabag', [SppdController::class, 'reviewKabag'])->name('sppd.review-kabag');
+        Route::post('/perjalanan-dinas/{sppd}/return-staf', [SppdController::class, 'returnToStaf'])->name('sppd.return-staf');
+    });
+
     Route::middleware('role:pimpinan')->prefix('persetujuan')->name('persetujuan.')->group(function () {
         Route::post('kegiatan/{kegiatan}/approve', [KegiatanController::class, 'approve'])->name('kegiatan.approve');
         Route::post('kegiatan/{kegiatan}/tolak', [KegiatanController::class, 'tolak'])->name('kegiatan.tolak');
@@ -111,7 +130,7 @@ Route::middleware('auth')->group(function () {
 
     Route::middleware('role:admin,pimpinan')->prefix('laporan')->name('laporan.')->group(function () {
         Route::get('/', [LaporanController::class, 'index'])->name('index');
-        
+
         Route::get('/cetak-semua', [LaporanController::class, 'cetakSemua'])->name('cetak.semua');
         Route::get('/cetak-tanggal', [LaporanController::class, 'cetakTanggal'])->name('cetak.tanggal');
         Route::get('/cetak-kategori', [LaporanController::class, 'cetakKategori'])->name('cetak.kategori');
@@ -119,8 +138,24 @@ Route::middleware('auth')->group(function () {
         Route::get('/cetak-berita-acara', [LaporanController::class, 'cetakBeritaAcara'])->name('cetak.berita-acara');
         Route::get('/cetak-statistik-kategori', [LaporanController::class, 'cetakStatistikKategori'])->name('cetak.statistik-kategori');
         Route::get('/cetak-statistik-bulan', [LaporanController::class, 'cetakStatistikBulan'])->name('cetak.statistik-bulan');
-        Route::get('/cetak-penandatangan', [LaporanController::class, 'cetakPenandatangan'])->name('cetak.penandatangan');
-        Route::get('/cetak-statistik-upload', [LaporanController::class, 'cetakStatistikUpload'])->name('cetak.statistik-upload');
+        Route::get('/cetak-rekap-sppd', [LaporanController::class, 'cetakRekapSppd'])->name('cetak.rekap-sppd');
+        Route::get('/cetak-rekap-lpj', [LaporanController::class, 'cetakRekapLpj'])->name('cetak.rekap-lpj');
+        Route::get('/cetak-riwayat-ttd', [LaporanController::class, 'cetakRiwayatTtd'])->name('cetak.riwayat-ttd');
+    });
+
+    Route::middleware('auth')->prefix('notifications')->name('notifications.')->group(function () {
+        Route::get('/', function () {
+            return response()->json(\App\Services\NotificationService::getLatest(Auth::user()));
+        })->name('index');
+        Route::post('/read/{id}', function ($id) {
+            return response()->json(['success' => \App\Services\NotificationService::markAsRead($id, Auth::user())]);
+        })->name('read');
+        Route::post('/read-all', function () {
+            return response()->json(['success' => \App\Services\NotificationService::markAllAsRead(Auth::user())]);
+        })->name('read-all');
+        Route::get('/unread-count', function () {
+            return response()->json(['count' => \App\Services\NotificationService::getUnreadCount(Auth::user())]);
+        })->name('unread-count');
     });
 });
 

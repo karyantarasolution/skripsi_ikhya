@@ -9,6 +9,9 @@ use App\Models\KategoriKegiatan;
 use App\Models\User;
 use App\Models\Penandatangan;
 use App\Models\Dokumentasi;
+use App\Models\SuratPerjalananDinas;
+use App\Models\LpjTugas;
+use App\Models\RiwayatTtdDigital;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Carbon\Carbon;
 use Illuminate\Support\Str;
@@ -37,11 +40,13 @@ class LaporanController extends Controller
         return Penandatangan::findOrFail($request->penandatangan_id);
     }
 
+    // ========== OPERASIONAL ==========
+
     public function cetakSemua(Request $request)
     {
         $penandatangan = $this->getCommonCetakData($request);
         $kegiatan = Kegiatan::with(['kategori', 'user'])->orderBy('tanggal', 'asc')->get();
-        
+
         $data = [
             'title' => 'Laporan Seluruh Kegiatan Biro Adpim',
             'kegiatan' => $kegiatan,
@@ -137,10 +142,95 @@ class LaporanController extends Controller
         return $this->generatePdf('laporan.pdf.berita-acara', $data, 'berita_acara_giat_' . $kegiatan->id . '.pdf');
     }
 
+    // ========== AKUNTABILITAS ==========
+
+    public function cetakRekapSppd(Request $request)
+    {
+        $penandatangan = $this->getCommonCetakData($request);
+
+        $query = SuratPerjalananDinas::with(['user', 'peserta.user', 'biaya', 'kegiatan']);
+
+        if ($request->filled('start_date') && $request->filled('end_date')) {
+            $query->whereBetween('tanggal_berangkat', [
+                Carbon::parse($request->start_date)->toDateString(),
+                Carbon::parse($request->end_date)->toDateString(),
+            ]);
+        }
+
+        $sppd = $query->orderBy('tanggal_berangkat', 'asc')->get();
+        $totalBiaya = $sppd->sum(fn($item) => $item->totalBiaya());
+
+        $data = [
+            'title' => 'Laporan Rekapitulasi Surat Perjalanan Dinas (SPPD)',
+            'sppd' => $sppd,
+            'total_biaya' => $totalBiaya,
+            'penandatangan' => $penandatangan,
+            'sub_judul' => 'Rekap Data Perjalanan Dinas Biro Adpim',
+        ];
+
+        return $this->generatePdf('laporan.pdf.rekap-sppd', $data, 'rekap_sppd_biro_adpim.pdf');
+    }
+
+    public function cetakRekapLpj(Request $request)
+    {
+        $penandatangan = $this->getCommonCetakData($request);
+
+        $query = LpjTugas::with(['kegiatan', 'user', 'bukti']);
+
+        if ($request->filled('start_date') && $request->filled('end_date')) {
+            $query->whereBetween('tanggal_lpj', [
+                Carbon::parse($request->start_date)->toDateString(),
+                Carbon::parse($request->end_date)->toDateString(),
+            ]);
+        }
+
+        $lpj = $query->orderBy('tanggal_lpj', 'asc')->get();
+
+        $data = [
+            'title' => 'Laporan Rekapitulasi LPJ Tugas',
+            'lpj' => $lpj,
+            'penandatangan' => $penandatangan,
+            'sub_judul' => 'Rekap Laporan Pertanggungjawaban Tugas/Anggaran Biro Adpim',
+        ];
+
+        return $this->generatePdf('laporan.pdf.rekap-lpj', $data, 'rekap_lpj_biro_adpim.pdf');
+    }
+
+    public function cetakRiwayatTtd(Request $request)
+    {
+        $penandatangan = $this->getCommonCetakData($request);
+
+        $query = RiwayatTtdDigital::with(['penandatangan', 'disahkanOleh']);
+
+        if ($request->filled('dokumen_type')) {
+            $query->where('dokumen_type', $request->dokumen_type);
+        }
+
+        if ($request->filled('start_date') && $request->filled('end_date')) {
+            $query->whereBetween('disahkan_at', [
+                Carbon::parse($request->start_date)->toDateString(),
+                Carbon::parse($request->end_date)->addDay()->toDateString(),
+            ]);
+        }
+
+        $riwayat = $query->orderBy('disahkan_at', 'desc')->get();
+
+        $data = [
+            'title' => 'Laporan Riwayat Tanda Tangan Digital',
+            'riwayat' => $riwayat,
+            'penandatangan' => $penandatangan,
+            'sub_judul' => 'Catatan Pengesahan Dokumen secara Digital Biro Adpim',
+        ];
+
+        return $this->generatePdf('laporan.pdf.riwayat-ttd', $data, 'riwayat_ttd_digital.pdf');
+    }
+
+    // ========== MANAJERIAL ==========
+
     public function cetakStatistikKategori(Request $request)
     {
         $penandatangan = $this->getCommonCetakData($request);
-        
+
         $kategori = KategoriKegiatan::withCount('kegiatan')->orderBy('nama_kategori', 'asc')->get();
         $total_kegiatan = Kegiatan::count();
 
@@ -159,7 +249,7 @@ class LaporanController extends Controller
     {
         $penandatangan = $this->getCommonCetakData($request);
         $request->validate(['tahun' => 'required|integer|min:2020|max:' . (date('Y') + 1)]);
-        
+
         $tahun = $request->tahun;
         $rekap = Kegiatan::selectRaw('MONTH(tanggal) as bulan, COUNT(*) as jumlah')
             ->whereYear('tanggal', $tahun)
@@ -188,45 +278,5 @@ class LaporanController extends Controller
         ];
 
         return $this->generatePdf('laporan.pdf.statistik-bulan', $data, 'rekap_statistik_bulan_' . $tahun . '.pdf');
-    }
-
-    public function cetakPenandatangan(Request $request)
-    {
-        $penandatangan_surat = $this->getCommonCetakData($request);
-        $daftar_pejabat = Penandatangan::orderBy('is_aktif', 'desc')->orderBy('id', 'asc')->get();
-
-        $data = [
-            'title' => 'Laporan Daftar Pejabat Penandatangan Laporan',
-            'daftar_pejabat' => $daftar_pejabat,
-            'penandatangan' => $penandatangan_surat,
-            'sub_judul' => 'Arsip Data Master Pejabat Berwenang Biro Adpim'
-        ];
-
-        return $this->generatePdf('laporan.pdf.penandatangan', $data, 'daftar_pejabat_penandatangan.pdf');
-    }
-
-    public function cetakStatistikUpload(Request $request)
-    {
-        $penandatangan = $this->getCommonCetakData($request);
-
-        $staf = User::whereIn('role', ['admin', 'staf'])
-            ->withCount('dokumentasi')
-            ->with(['dokumentasi' => function ($q) {
-                $q->with('kegiatan')->orderBy('created_at', 'desc');
-            }])
-            ->orderBy('dokumentasi_count', 'desc')
-            ->get();
-
-        $total_upload = Dokumentasi::count();
-
-        $data = [
-            'title' => 'Laporan Statistik Upload Dokumentasi per Staf',
-            'staf' => $staf,
-            'total_upload' => $total_upload,
-            'penandatangan' => $penandatangan,
-            'sub_judul' => 'Rekapitulasi Jumlah Upload File Dokumentasi Berdasarkan Staf Peliput'
-        ];
-
-        return $this->generatePdf('laporan.pdf.statistik-upload', $data, 'rekap_statistik_upload_staf.pdf');
     }
 }

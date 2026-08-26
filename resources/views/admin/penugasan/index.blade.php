@@ -47,8 +47,17 @@
                                             @foreach($item->penugasan as $p)
                                                 <span class="inline-flex items-center px-2 py-1 rounded text-xs bg-indigo-50 text-indigo-700 border border-indigo-200">
                                                     {{ $p->user->name ?? '?' }}
+                                                    <form action="{{ route('admin.penugasan.destroy', $p->id) }}" method="POST" class="ml-1" onsubmit="return confirm('Hapus penugasan {{ $p->user->name ?? '?' }}?')">
+                                                        @csrf @method('DELETE')
+                                                        <button type="submit" class="text-indigo-400 hover:text-red-600 transition-colors" title="Hapus">
+                                                            <svg class="w-3 h-3 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                                                        </button>
+                                                    </form>
                                                 </span>
                                             @endforeach
+                                            @if($item->penugasan->isEmpty())
+                                                <span class="text-xs text-gray-400 italic">Belum ada</span>
+                                            @endif
                                         </div>
                                     </td>
                                     <td class="px-6 py-4">
@@ -58,16 +67,10 @@
                                         @endforeach
                                     </td>
                                     <td class="px-6 py-4 text-center">
-                                        <div class="flex justify-center gap-2">
-                                            @foreach($item->penugasan as $p)
-                                                <form action="{{ route('admin.penugasan.destroy', $p->id) }}" method="POST" onsubmit="return confirm('Hapus penugasan {{ $p->user->name ?? '?' }}?')">
-                                                    @csrf @method('DELETE')
-                                                    <button type="submit" class="text-xs px-2 py-1 text-red-600 bg-red-50 rounded hover:bg-red-100" title="Hapus {{ $p->user->name ?? '?' }}">
-                                                        <svg class="w-3 h-3 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
-                                                    </button>
-                                                </form>
-                                            @endforeach
-                                        </div>
+                                        <a href="{{ route('admin.penugasan.edit', $item->penugasan->first()?->id ?? 0) }}" class="text-xs px-3 py-1.5 text-blue-600 bg-blue-50 rounded hover:bg-blue-100 inline-flex items-center gap-1">
+                                            <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg>
+                                            Edit
+                                        </a>
                                     </td>
                                 </tr>
                             @empty

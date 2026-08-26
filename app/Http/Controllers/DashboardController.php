@@ -7,6 +7,7 @@ use App\Models\Kegiatan;
 use App\Models\Dokumentasi;
 use App\Models\User;
 use App\Models\PenugasanLiputan;
+use App\Models\KategoriKegiatan;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Auth;
 
@@ -43,6 +44,25 @@ class DashboardController extends Controller
 
         $staf = User::whereIn('role', ['admin', 'staf'])->withCount('dokumentasi')->orderBy('dokumentasi_count', 'desc')->get();
         $data['staf_upload'] = $staf;
+
+        $data['chart_bulan'] = collect();
+        $data['chart_jumlah'] = collect();
+        for ($i = 5; $i >= 0; $i--) {
+            $bulan = Carbon::now()->subMonths($i);
+            $data['chart_bulan']->push($bulan->format('M Y'));
+            $data['chart_jumlah']->push(
+                Kegiatan::whereMonth('tanggal', $bulan->month)
+                    ->whereYear('tanggal', $bulan->year)
+                    ->count()
+            );
+        }
+
+        $kategoriData = Kegiatan::select('kategori_id', \DB::raw('count(*) as total'))
+            ->groupBy('kategori_id')
+            ->with('kategori:id,nama_kategori,warna_label')
+            ->orderByDesc('total')
+            ->get();
+        $data['chart_kategori'] = $kategoriData;
 
         return view('admin.dashboard', $data);
     }
