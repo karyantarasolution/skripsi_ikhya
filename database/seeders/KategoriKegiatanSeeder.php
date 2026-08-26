@@ -38,7 +38,7 @@ class KategoriKegiatanSeeder extends Seeder
         ];
 
         foreach ($kategori as $kat) {
-            KategoriKegiatan::create($kat);
+            KategoriKegiatan::updateOrCreate(['nama_kategori' => $kat['nama_kategori']], $kat);
         }
     }
 }
