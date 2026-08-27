@@ -138,16 +138,17 @@
         <div class="ttd-box">
             <p>Banjarbaru, {{ \Carbon\Carbon::now()->translatedFormat('d F Y') }}</p>
             <p><strong>{{ $penandatangan->jabatan }}</strong></p>
-            <div class="ttd-space"></div>
-           <p style="text-decoration: underline; font-weight: bold;">{{ $penandatangan->nama_pejabat ?? $penandatangan->nama }}</p>
-            <p>NIP. {{ $penandatangan->nip }}</p>
-            @if(!empty($qr_svg) && !empty($hash))
+                 @if(!empty($qr_svg) && !empty($hash))
                 <div class="ttd-qr">
                     <img src="data:image/svg+xml;base64,{{ base64_encode($qr_svg) }}" alt="QR Code Verifikasi">
                     <p>Verifikasi: {{ substr($hash, 0, 16) }}...</p>
                 </div>
             @endif
-        </div>
+          
+           <p style="text-decoration: underline; font-weight: bold;">{{ $penandatangan->nama_pejabat ?? $penandatangan->nama }}</p>
+            <p>NIP. {{ $penandatangan->nip }}</p>
+       
+      
     </div>
 
 </body>
